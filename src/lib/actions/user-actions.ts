@@ -205,6 +205,25 @@ export async function fetchResearcherMetrics() {
 
     // 4. INSTITUTIONAL PRODUCTS COUNT
     const AcademicItem = (await import('@/lib/models/AcademicItem')).default;
+    const Project = (await import('@/lib/models/Project')).default;
+    
+    // Total Institutional Stats for ADMIN/ADMINDIUS
+    let institutionalStats = null;
+    if (session.user.role === 'ADMIN' || session.user.role === 'ADMINDIUS') {
+       const [totalActiveProjects, totalResearchers, totalInstitutionalProducts, totalTitulos] = await Promise.all([
+          Project.countDocuments({ status: { $in: ['APPROVED', 'IN_EXECUTION'] } }),
+          User.countDocuments({ role: 'DOCENTE' }),
+          AcademicItem.countDocuments({ type: 'PRODUCCION' }),
+          AcademicItem.countDocuments({ type: 'TITULO' })
+       ]);
+       institutionalStats = {
+          projects: totalActiveProjects,
+          researchers: totalResearchers,
+          products: totalInstitutionalProducts,
+          titulos: totalTitulos
+       };
+    }
+
     const totalProducts = await AcademicItem.countDocuments({ 
        users: session.user.id, 
        type: 'PRODUCCION' 
@@ -228,12 +247,13 @@ export async function fetchResearcherMetrics() {
              scholar: user.profile.googleScholarUrl,
              orcid: user.profile.orcidUrl
           },
-          profileStats,
-          totalProducts,
-          productsPerYear,
-          indexedPerYear
-       } 
-    };
+           profileStats,
+           totalProducts,
+           productsPerYear,
+           indexedPerYear,
+           institutionalStats
+        } 
+     };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

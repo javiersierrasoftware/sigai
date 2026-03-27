@@ -253,6 +253,7 @@ export async function updateResearchLine(lineId: string, formData: FormData) {
   }
 }
 
+// RESEARCH LINES
 export async function deleteResearchLine(lineId: string) {
   try {
     await checkAdmin();
@@ -260,6 +261,183 @@ export async function deleteResearchLine(lineId: string) {
     await ResearchLine.findByIdAndDelete(lineId);
     revalidatePath('/dashboard');
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// RUBRICS
+export async function createRubric(formData: FormData) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const criteriaStr = formData.get('criteria') as string;
+    const criteria = criteriaStr ? JSON.parse(criteriaStr) : [];
+
+    const Rubric = (await import('@/lib/models/Rubric')).default;
+    const rubric = await Rubric.create({ name, description, criteria });
+    revalidatePath('/dashboard');
+    return { success: true, data: JSON.parse(JSON.stringify(rubric)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getRubrics() {
+  try {
+    await connectDB();
+    const Rubric = (await import('@/lib/models/Rubric')).default;
+    const rubrics = await Rubric.find({}).sort({ name: 1 });
+    return { success: true, data: JSON.parse(JSON.stringify(rubrics)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateRubric(rubricId: string, formData: FormData) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const criteriaStr = formData.get('criteria') as string;
+    const criteria = criteriaStr ? JSON.parse(criteriaStr) : [];
+
+    const Rubric = (await import('@/lib/models/Rubric')).default;
+    const rubric = await Rubric.findByIdAndUpdate(rubricId, { 
+      name, description, criteria 
+    }, { new: true });
+    
+    revalidatePath('/dashboard');
+    return { success: true, data: JSON.parse(JSON.stringify(rubric)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteRubric(rubricId: string) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    const Rubric = (await import('@/lib/models/Rubric')).default;
+    await Rubric.findByIdAndDelete(rubricId);
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// PROJECT CALLS (CONVOCATORIAS)
+export async function createProjectCall(formData: FormData) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    
+    const title = formData.get('title') as string;
+    const code = formData.get('code') as string;
+    const yearInput = formData.get('year') as string;
+    const year = yearInput && !isNaN(parseInt(yearInput)) ? parseInt(yearInput) : new Date().getFullYear();
+    
+    const budgetPerProject = parseFloat(formData.get('budgetPerProject') as string) || 0;
+    const targetAudience = formData.get('targetAudience') as string;
+    const description = formData.get('description') as string;
+    const rubricId = formData.get('rubricId') || undefined;
+    
+    // Robust date parsing
+    const openingRaw = formData.get('openingDate') as string;
+    const closingRaw = formData.get('closingDate') as string;
+    const openingDate = openingRaw ? new Date(openingRaw) : new Date();
+    const closingDate = closingRaw ? new Date(closingRaw) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    
+    // Validate dates
+    if (isNaN(openingDate.getTime()) || isNaN(closingDate.getTime())) {
+      throw new Error("Fechas de apertura o cierre inválidas.");
+    }
+
+    const requiredFieldsStr = formData.get('requiredFields') as string;
+    const requiredFields = requiredFieldsStr ? JSON.parse(requiredFieldsStr) : [];
+    
+    const fieldConfigStr = formData.get('fieldConfig') as string;
+    const fieldConfig = fieldConfigStr ? JSON.parse(fieldConfigStr) : {};
+
+    const ProjectCall = (await import('@/lib/models/ProjectCall')).default;
+    const call = await ProjectCall.create({
+      title, code, year, budgetPerProject, targetAudience, description,
+      rubricId, openingDate, closingDate, requiredFields, fieldConfig
+    });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/convocatorias');
+    return { success: true, data: JSON.parse(JSON.stringify(call)) };
+  } catch (error: any) {
+    console.error('Create Call Error:', error);
+    return { success: false, error: `Error al crear: ${error.message}` };
+  }
+}
+
+export async function updateProjectCall(id: string, formData: FormData) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    
+    const openingRaw = formData.get('openingDate') as string;
+    const closingRaw = formData.get('closingDate') as string;
+    const openingDate = openingRaw ? new Date(openingRaw) : undefined;
+    const closingDate = closingRaw ? new Date(closingRaw) : undefined;
+
+    const requiredFieldsStr = formData.get('requiredFields') as string;
+    const fieldConfigStr = formData.get('fieldConfig') as string;
+
+    const updateData: any = {
+      title: formData.get('title'),
+      code: formData.get('code'),
+      year: parseInt(formData.get('year') as string) || undefined,
+      budgetPerProject: parseFloat(formData.get('budgetPerProject') as string) || undefined,
+      targetAudience: formData.get('targetAudience'),
+      description: formData.get('description'),
+      rubricId: formData.get('rubricId') || undefined,
+    };
+
+    if (openingDate && !isNaN(openingDate.getTime())) updateData.openingDate = openingDate;
+    if (closingDate && !isNaN(closingDate.getTime())) updateData.closingDate = closingDate;
+    if (requiredFieldsStr) updateData.requiredFields = JSON.parse(requiredFieldsStr);
+    if (fieldConfigStr) updateData.fieldConfig = JSON.parse(fieldConfigStr);
+
+    const ProjectCall = (await import('@/lib/models/ProjectCall')).default;
+    const call = await ProjectCall.findByIdAndUpdate(id, updateData, { new: true });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/convocatorias');
+    return { success: true, data: JSON.parse(JSON.stringify(call)) };
+  } catch (error: any) {
+    console.error('Update Call Error:', error);
+    return { success: false, error: `Error al actualizar: ${error.message}` };
+  }
+}
+
+export async function deleteProjectCall(id: string) {
+  try {
+    await checkAdmin();
+    await connectDB();
+    const ProjectCall = (await import('@/lib/models/ProjectCall')).default;
+    await ProjectCall.findByIdAndDelete(id);
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/convocatorias');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getProjectCalls() {
+  try {
+    await connectDB();
+    const ProjectCall = (await import('@/lib/models/ProjectCall')).default;
+    const calls = await ProjectCall.find({}).populate('rubricId').sort({ createdAt: -1 });
+    return { success: true, data: JSON.parse(JSON.stringify(calls)) };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

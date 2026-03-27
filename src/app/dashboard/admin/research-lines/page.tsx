@@ -5,7 +5,7 @@ import ResearchLinesManagementClient from "./ResearchLinesManagementClient";
 
 export default async function AdminResearchLinesPage() {
   const session = await getSession();
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'ADMINDIUS')) {
     redirect('/dashboard');
   }
 

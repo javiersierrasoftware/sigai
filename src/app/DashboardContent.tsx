@@ -124,7 +124,8 @@ export default function DashboardContent({ user }: DashboardContentProps) {
        odsCount: { value: 0, label: "Impacto ODS", max: 17 },
        linesCount: { value: 0, label: "Líneas de Investigación" },
        groupsCount: { value: 0, label: "Grupos de Investigación" }
-    }
+    },
+    institutionalStats: null as { projects: number, researchers: number, products: number, titulos: number } | null
   });
 
   useEffect(() => {
@@ -191,9 +192,11 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                 <Settings className="h-5 w-5" />
               </Button>
             </Link>
-            <Button className="h-11 px-6 bg-primary hover:bg-primary/95 text-white shadow-lg shadow-emerald-200/50 transition-all duration-200 font-bold uppercase tracking-widest text-[11px] rounded-2xl">
-              <Plus className="mr-2 h-4 w-4" /> Nuevo Proyecto
-            </Button>
+            <Link href="/dashboard/convocatorias">
+              <Button className="h-11 px-6 bg-primary hover:bg-primary/95 text-white shadow-lg shadow-emerald-200/50 transition-all duration-200 font-bold uppercase tracking-widest text-[11px] rounded-2xl">
+                <Plus className="mr-2 h-4 w-4" /> Nuevo Proyecto
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -217,9 +220,16 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] leading-none">{card.title}</p>
                 <h3 className={cn(
                   "text-2xl font-serif mt-2 text-slate-800 group-hover:text-primary transition-colors",
-                  loadingMetrics && idx === 2 ? "opacity-30 blur-sm" : "opacity-100"
+                  loadingMetrics ? "opacity-30 blur-sm" : "opacity-100"
                 )}>
-                  {idx === 2 ? metrics.totalProducts.toLocaleString() : card.value}
+                  {metrics.institutionalStats ? (
+                    idx === 0 ? metrics.institutionalStats.projects.toLocaleString() :
+                    idx === 1 ? metrics.institutionalStats.researchers.toLocaleString() :
+                    idx === 2 ? metrics.institutionalStats.products.toLocaleString() :
+                    metrics.institutionalStats.titulos.toLocaleString()
+                  ) : (
+                    idx === 2 ? metrics.totalProducts.toLocaleString() : card.value
+                  )}
                 </h3>
               </div>
 
@@ -241,9 +251,11 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                   <FileText className="h-5 w-5 text-primary/70" />
                   Proyectos Recientes
                 </h2>
-                <Button variant="ghost" size="sm" className="text-[11px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 hover:bg-primary/5 -mr-2">
-                  Ver todos <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                </Button>
+                <Link href={user.role === 'ADMIN' || user.role === 'ADMINDIUS' ? "/dashboard/admin/projects" : "/dashboard/projects"}>
+                  <Button variant="ghost" size="sm" className="text-[11px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 hover:bg-primary/5 -mr-2">
+                    Ver todos <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
               </div>
 
               <div className="divide-y divide-slate-50">
@@ -564,19 +576,32 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     </button>
                   </Link>
 
-                  <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest">
-                    <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Plus className="h-4 w-4" />
-                    </div>
-                    Nueva Convocatoria
-                  </button>
+                  <Link href={user.role === 'ADMIN' || user.role === 'ADMINDIUS' ? "/dashboard/admin/projects" : "/dashboard/projects"}>
+                    <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest">
+                      <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+                        <ClipboardList className="h-4 w-4" />
+                      </div>
+                      Proyectos
+                    </button>
+                  </Link>
 
-                  <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest">
-                    <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Search className="h-4 w-4" />
-                    </div>
-                    Explorador SIGAI
-                  </button>
+                  <Link href="/dashboard/convocatorias">
+                    <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest">
+                      <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Plus className="h-4 w-4" />
+                      </div>
+                      Nueva Postulación
+                    </button>
+                  </Link>
+
+                  <Link href="/dashboard/explorador">
+                    <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest text-left">
+                      <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Search className="h-4 w-4" />
+                      </div>
+                      Explorador SIGAI
+                    </button>
+                  </Link>
                 </div>
               </div>
               {/* Background art */}
@@ -612,7 +637,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
             )}
 
             {/* ADMIN ONLY: Institutional Management */}
-            {user.role === 'ADMIN' && (
+            {(user.role === 'ADMIN' || user.role === 'ADMINDIUS') && (
               <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200/50 relative overflow-hidden group">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-6">
@@ -641,6 +666,20 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                       <button className="w-full flex items-center bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
                         <TrendingUp className="h-4 w-4 text-amber-400" />
                         <span className="flex-1 text-center px-2">Líneas de Investigación</span>
+                        <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                      </button>
+                    </Link>
+                    <Link href="/dashboard/admin/calls">
+                      <button className="w-full flex items-center bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
+                        <ClipboardList className="h-4 w-4 text-indigo-400" />
+                        <span className="flex-1 text-center px-2">Gestionar Proyectos y Convocatorias</span>
+                        <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                      </button>
+                    </Link>
+                    <Link href="/dashboard/admin/rubrics">
+                      <button className="w-full flex items-center bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
+                        <FileText className="h-4 w-4 text-rose-400" />
+                        <span className="flex-1 text-center px-2">Rúbricas de Evaluación</span>
                         <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
                       </button>
                     </Link>
