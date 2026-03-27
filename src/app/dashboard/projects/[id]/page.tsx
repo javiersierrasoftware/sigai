@@ -18,11 +18,16 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
   const { getProjectCallById } = await import("@/lib/actions/project-actions");
   const callRes = await getProjectCallById(res.data.projectCallId);
 
+  // Fetch evaluations for this project
+  const { getProjectEvaluations } = await import("@/lib/actions/evaluation-actions");
+  const evalRes = await getProjectEvaluations(id);
+
   return (
     <ProjectDetailClient 
       project={res.data} 
       call={callRes.success ? callRes.data : null}
       user={session.user}
+      initialEvaluations={evalRes.success ? evalRes.data : []}
     />
   );
 }

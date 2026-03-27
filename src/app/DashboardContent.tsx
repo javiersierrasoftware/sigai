@@ -25,7 +25,8 @@ import {
   Globe,
   Share2,
   ExternalLink,
-  Activity
+  Activity,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -125,7 +126,10 @@ export default function DashboardContent({ user }: DashboardContentProps) {
        linesCount: { value: 0, label: "Líneas de Investigación" },
        groupsCount: { value: 0, label: "Grupos de Investigación" }
     },
-    institutionalStats: null as { projects: number, researchers: number, products: number, titulos: number } | null
+    institutionalStats: null as { projects: number, researchers: number, products: number, titulos: number } | null,
+    evaluationsCount: 0,
+    activeProjectsCount: 0,
+    recentProjects: [] as any[]
   });
 
   useEffect(() => {
@@ -141,6 +145,16 @@ export default function DashboardContent({ user }: DashboardContentProps) {
 
     loadMetrics();
   }, []);
+
+  const statusMap: Record<string, { label: string, color: string }> = {
+    'DRAFT': { label: 'Borrador', color: 'bg-slate-50 text-slate-500 border-slate-100' },
+    'SUBMITTED': { label: 'Enviado', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+    'UNDER_REVIEW': { label: 'En Revisión', color: 'bg-amber-50 text-amber-700 border-amber-100' },
+    'APPROVED': { label: 'Aprobado', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    'REJECTED': { label: 'Rechazado', color: 'bg-red-50 text-red-700 border-red-100' },
+    'IN_EXECUTION': { label: 'En Ejecución', color: 'bg-sky-50 text-sky-700 border-sky-100' },
+    'CLOSED': { label: 'Finalizado', color: 'bg-slate-900/5 text-slate-900 border-slate-200 shadow-inner' }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -228,7 +242,9 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     idx === 2 ? metrics.institutionalStats.products.toLocaleString() :
                     metrics.institutionalStats.titulos.toLocaleString()
                   ) : (
-                    idx === 2 ? metrics.totalProducts.toLocaleString() : card.value
+                    idx === 0 ? metrics.activeProjectsCount.toLocaleString() :
+                    idx === 2 ? metrics.totalProducts.toLocaleString() : 
+                    card.value
                   )}
                 </h3>
               </div>
@@ -259,36 +275,50 @@ export default function DashboardContent({ user }: DashboardContentProps) {
               </div>
 
               <div className="divide-y divide-slate-50">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="px-8 py-5 hover:bg-slate-50/50 transition-colors cursor-pointer group">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-5">
-                        <div className="h-11 w-11 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-                          <BarChart3 className="h-6 w-6" />
+                {metrics.recentProjects.length > 0 ? (
+                  metrics.recentProjects.map((project: any) => (
+                    <div key={project._id} className="px-8 py-5 hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                      <div className="flex items-center justify-between text-left">
+                        <div className="flex items-center gap-5">
+                          <div className={cn(
+                             "h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-300",
+                             statusMap[project.status]?.color.replace('text-', 'bg-').split(' ')[0] || "bg-slate-50",
+                             "bg-opacity-10 text-primary"
+                          )}>
+                            <BarChart3 className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-serif text-slate-800 group-hover:text-primary transition-colors leading-tight text-lg line-clamp-1">{project.title}</h4>
+                            <p className="text-[10px] text-slate-300 mt-1 font-medium uppercase tracking-wider">
+                              Actualizado el {new Date(project.updatedAt).toLocaleDateString()} • {project.principalInvestigator}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-serif text-slate-800 group-hover:text-primary transition-colors leading-tight text-lg">Implementación de IA en {i === 1 ? 'Salud' : i === 2 ? 'Agricultura' : 'Energía'}</h4>
-                          <p className="text-[10px] text-slate-300 mt-1 font-medium uppercase tracking-wider">
-                            Actualizado el {mounted ? new Date().toLocaleDateString() : '---'} • Nombre del líder
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <span className={cn(
+                            "text-[9px] font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-xl block border shadow-sm transition-all",
+                            statusMap[project.status]?.color || "bg-slate-50 text-slate-400 border-slate-100"
+                          )}>
+                            {statusMap[project.status]?.label || project.status}
+                          </span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 group-hover:text-slate-600 rounded-xl">
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase tracking-[0.1em] px-3 py-1.5 rounded-xl block border",
-                          i % 2 === 0
-                            ? "bg-amber-50 text-amber-700 border-amber-100"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        )}>
-                          {i % 2 === 0 ? "En Revisión" : "Aprobado"}
-                        </span>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 group-hover:text-slate-600 rounded-xl">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-20 text-center flex flex-col items-center gap-4 bg-slate-50/30">
+                     <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
+                        <BarChart3 className="h-8 w-8" />
+                     </div>
+                     <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No hay proyectos registrados</p>
+                        <p className="text-[10px] text-slate-300 mt-1 italic font-medium uppercase tracking-tighter">Inicie una nueva postulación para visualizar su actividad aquí.</p>
+                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -573,6 +603,20 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                         <GradIcon className="h-4 w-4" />
                       </div>
                       Historia Docente
+                    </button>
+                  </Link>
+
+                  <Link href="/dashboard/evaluations">
+                    <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest relative group/item">
+                      <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center group-hover/item:bg-emerald-500 transition-colors">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      Evaluar Proyectos
+                      {(metrics.evaluationsCount || 0) > 0 && (
+                        <span className="absolute right-4 bg-rose-500 text-[8px] px-2.5 py-1 rounded-lg shadow-lg border border-white/20 animate-pulse font-black">
+                          {metrics.evaluationsCount} PENDIENTES
+                        </span>
+                      )}
                     </button>
                   </Link>
 

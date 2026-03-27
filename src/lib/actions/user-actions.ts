@@ -203,10 +203,22 @@ export async function fetchResearcherMetrics() {
        groupsCount: { value: profile.researchGroups?.length || 0, label: "Grupos de Investigación" }
     };
 
-    // 4. INSTITUTIONAL PRODUCTS COUNT
+    // 4. INSTITUTIONAL PRODUCTS AND EVALUATIONS COUNT
     const AcademicItem = (await import('@/lib/models/AcademicItem')).default;
     const Project = (await import('@/lib/models/Project')).default;
+    const ProjectEvaluation = (await import('@/lib/models/ProjectEvaluation')).default;
+
+    const evaluationsCount = await ProjectEvaluation.countDocuments({ 
+       evaluatorEmail: session.user.email,
+       status: 'PENDING'
+    });
     
+    // Personal Active Projects (Approved or In Execution)
+    const activeProjectsCount = await Project.countDocuments({
+       $or: [{ leaderEmail: session.user.email }, { "teamMembers.email": session.user.email }],
+       status: { $in: ['APPROVED', 'IN_EXECUTION'] }
+    });
+
     // Total Institutional Stats for ADMIN/ADMINDIUS
     let institutionalStats = null;
     if (session.user.role === 'ADMIN' || session.user.role === 'ADMINDIUS') {
@@ -239,6 +251,16 @@ export async function fetchResearcherMetrics() {
     });
     const indexedPerYear = seniority > 0 ? (indexedArticlesCount / seniority).toFixed(1) : indexedArticlesCount.toString();
 
+    // 6. RECENT PROJECTS FOR DASHBOARD
+    const filter = (session.user.role === 'ADMIN' || session.user.role === 'ADMINDIUS') 
+       ? {} 
+       : { $or: [{ leaderEmail: session.user.email }, { "teamMembers.email": session.user.email }] };
+       
+    const recentProjects = await Project.find(filter)
+       .sort({ updatedAt: -1 })
+       .limit(4)
+       .lean();
+
     return { 
        success: true, 
        data: {
@@ -251,7 +273,10 @@ export async function fetchResearcherMetrics() {
            totalProducts,
            productsPerYear,
            indexedPerYear,
-           institutionalStats
+           institutionalStats,
+           evaluationsCount,
+           activeProjectsCount,
+           recentProjects: JSON.parse(JSON.stringify(recentProjects))
         } 
      };
   } catch (error: any) {

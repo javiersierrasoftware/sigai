@@ -108,9 +108,11 @@ export default function ProjectSubmissionClient({ call, user, researchLines }: P
         principalInvestigator: `${teamMembers[0].firstName} ${teamMembers[0].lastName}`,
         leaderEmail: user.email,
         projectCallId: call._id,
-        budget: teamMembers.reduce((acc, m) => acc + (m.dedication * 4 * m.months * m.hourlyRate), 0),
+        budget: teamMembers.reduce((acc, m) => acc + (m.dedication * 4 * m.months * (m.hourlyRate || 0)), 0),
         startDate: new Date(),
         dynamicData: formData.dynamicData,
+        teamMembers: teamMembers,
+        schedule: [ { activity: 'Inicio del Proyecto', month: 1, duration: 1 } ], // Mock schedule until the UI has a builder
         status: 'SUBMITTED'
       }
 

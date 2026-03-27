@@ -13,6 +13,12 @@ export interface IProject extends Document {
   attachments: string[]; // URLs from storage
   // Configurable fields from the ToR/GoogleForm builder
   dynamicData?: Map<string, any>;
+  teamMembers?: any[];
+  schedule?: any[];
+  goals?: {
+    main: string;
+    specifics: string[];
+  };
   createdAt: Date;
 }
 
@@ -31,7 +37,13 @@ const ProjectSchema = new Schema<IProject>({
   startDate: { type: Date, default: Date.now },
   endDate: { type: Date },
   attachments: [{ type: String }],
-  dynamicData: { type: Map, of: Schema.Types.Mixed, default: {} }
+  dynamicData: { type: Map, of: Schema.Types.Mixed, default: {} },
+  teamMembers: [{ type: Schema.Types.Mixed }],
+  schedule: [{ type: Schema.Types.Mixed }],
+  goals: {
+    main: { type: String },
+    specifics: [{ type: String }]
+  }
 }, {
   timestamps: true,
 });

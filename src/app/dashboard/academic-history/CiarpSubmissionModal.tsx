@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, FileText, Upload, Check, AlertCircle, 
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { uploadFile } from "@/lib/actions/storage-actions"
 import { sendToCiarp } from "@/lib/actions/academic-actions"
 import { cn } from "@/lib/utils"
-import { calculateIndexedArticlePoints, getArticleBasePoints } from "@/lib/utils/decreto-1279"
+import { calculateIndexedArticlePoints, getArticleBasePoints, calculateTitlePoints, calculateCategoryPoints } from "@/lib/utils/decreto-1279"
 
 interface Props {
   isOpen: boolean
@@ -26,26 +26,52 @@ export default function CiarpSubmissionModal({ isOpen, onClose, item }: Props) {
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
   const [agreed, setAgreed] = useState(false)
 
+  // Reset state when item changes to avoid "leaking" evidence from previous modals
+  useState(() => {
+    setEvidence({})
+    setAgreed(false)
+    setRecognitionType('SALARIAL')
+    setUploadingFiles({})
+  });
+
+  // Since we might reuse the same modal instance, use useEffect for robustness
+  useEffect(() => {
+    if (isOpen) {
+      setEvidence({})
+      setAgreed(false)
+      setRecognitionType('SALARIAL')
+      setUploadingFiles({})
+    }
+  }, [item?._id, isOpen])
+
   if (!item) return null
 
   // Points Calculation for Projection
   const isArticle = item.subtype?.includes('Artículo');
+  const isTitle = item.type === 'TITULO';
+  const isCategory = item.type === 'CATEGORIA';
+
   const journalCategory = item.metadata?.journalCategory || 'NO_CATEGORIZADA';
   const totalAuthors = item.totalAuthors || 1;
   
   const basePointsForProjection = isArticle 
-    ? getArticleBasePoints(journalCategory) 
+    ? getArticleBasePoints(journalCategory)
+    : isTitle 
+    ? calculateTitlePoints(item.metadata?.level || item.subtype, item.metadata)
+    : isCategory
+    ? calculateCategoryPoints(item.title)
     : (item.points || 0);
   
   const projectedPoints = isArticle 
     ? calculateIndexedArticlePoints(journalCategory, totalAuthors)
-    : (item.points || 0);
+    : basePointsForProjection;
 
   // Author restriction multiplier display
   const getMultiplierLabel = () => {
+    if (isTitle || isCategory) return "Individual (Art 7-8)";
     if (totalAuthors <= 3) return "100%";
     if (totalAuthors <= 5) return "50%";
-    return "Dividido";
+    return "Dividido (Art 15)";
   }
 
   // Determine required files based on subtype

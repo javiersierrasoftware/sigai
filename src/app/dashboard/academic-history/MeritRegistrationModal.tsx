@@ -180,12 +180,21 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
     setLoading(true)
     const isIndividualMerit = selectedType.type === 'TITULO' || selectedType.type === 'CATEGORIA' || selectedType.id === 'EX';
 
+    const finalTitle = selectedType.id === 'EX' ? `Experiencia en ${metadata.institution || institution || 'Entidad Externa'}` : title;
+    const finalDate = selectedType.id === 'EX' ? (metadata.startDate || new Date().toISOString().split('T')[0]) : date;
+
+    if (!finalDate) {
+       alert('Por favor complete la fecha de este registro.');
+       setLoading(false);
+       return;
+    }
+
     const data = {
       type: selectedType.type,
       subtype: selectedType.label,
-      title,
+      title: finalTitle,
       institution,
-      date,
+      date: finalDate,
       radicationDate: new Date().toISOString().split('T')[0],
       totalAuthors: isIndividualMerit ? 1 : Math.max(totalAuthors, authors.length),
       authors: isIndividualMerit ? [{ userId: user.id || user._id, name: user.fullName, type: 'INTERNAL' }] : authors,
@@ -262,10 +271,44 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
                          selectedType.id === 'PT' ? 'Título de Producción Técnica' :
                          selectedType.id === 'PA' ? 'Título de Patente' :
                          selectedType.id === 'SO' ? 'Título de Software / App' :
+                         selectedType.id === 'CD' ? 'Categoría Alcanzada' :
                          'Nombre Oficial del Producto'}
                       </label>
-                      <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Escriba el título exacto..." className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none font-medium text-xs shadow-inner" />
+                      {selectedType.id === 'CD' ? (
+                        <select 
+                          value={title} 
+                          onChange={e => setTitle(e.target.value)}
+                          className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none font-bold text-slate-700 text-xs shadow-inner appearance-none"
+                        >
+                           <option value="">-- Seleccionar Categoría --</option>
+                           <option value="Docente Auxiliar">Docente Auxiliar</option>
+                           <option value="Docente Asistente">Docente Asistente</option>
+                           <option value="Docente Asociado">Docente Asociado</option>
+                           <option value="Docente Titular">Docente Titular</option>
+                           <option value="Instructor">Instructor</option>
+                        </select>
+                      ) : (
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Escriba el título exacto..." className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none font-medium text-xs shadow-inner" />
+                      )}
                    </div>
+
+                   {selectedType.id === 'TI' && (
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Nivel Académico</label>
+                        <select 
+                          value={metadata.level || ''} 
+                          onChange={e => handleMetadataChange('level', e.target.value)}
+                          className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none font-bold text-slate-700 text-xs shadow-inner appearance-none"
+                        >
+                           <option value="">-- Seleccionar Nivel --</option>
+                           <option value="Pregrado">Técnico / Tecnólogo / Pregrado</option>
+                           <option value="Especialización">Especialización</option>
+                           <option value="Maestría">Maestría</option>
+                           <option value="Doctorado">Doctorado</option>
+                           <option value="Postdoctorado">Postdoctorado</option>
+                        </select>
+                     </div>
+                   )}
 
                    {/* INTERNAL BOOK TITLE FOR CHAPTER */}
                    {selectedType.id === 'CL' && (

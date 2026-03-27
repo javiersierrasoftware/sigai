@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { logoutAction } from '@/lib/actions/auth-actions'
 // Import server actions (Need to ensure these exist)
 import { createActa, updateActa, evaluateSubmission, bulkEvaluateSubmissions } from "@/lib/actions/ciarp-actions"
+import { calculateCumulativeTitlePoints } from "@/lib/utils/decreto-1279"
 
 interface Props {
   user: {
@@ -756,11 +757,26 @@ export default function CiarpAdminClient({ data, user }: Props) {
                           </thead>
                           <tbody className="divide-y divide-slate-50">
                              {data.lecturers.map(lecturer => {
+                               const lecturerSubmissions = (data.addressedSubmissions || []).filter(s => s.users?.some((u: any) => u._id === lecturer._id) && s.status === 'APROBADO');
+                               
                                const salary = lecturer.profile?.initialSalaryProfile || lecturer.profile || {};
-                               const total = (salary.pointsTitles || 0) + 
-                                             (salary.pointsExperience || 0) + 
-                                             (salary.pointsCategory || 0) + 
-                                             (salary.pointsProduction || 0);
+                               
+                               // Special Cumulative calculation for Titles based on hierarchical Decree rules
+                               const totalTitles = calculateCumulativeTitlePoints([
+                                 ...lecturerSubmissions.filter(s => s.type === 'TITULO'),
+                                 // include initial ones if they exist (we assume initial ones also follow rules)
+                                 { type: 'TITULO', points: salary.pointsTitles || 0, subtype: 'Carga Inicial' }
+                               ]);
+
+                               const extraExperience = lecturerSubmissions.filter(s => s.type === 'EXPERIENCIA').reduce((acc, s) => acc + (s.points || 0), 0);
+                               const extraCategory = lecturerSubmissions.filter(s => s.type === 'CATEGORIA').reduce((acc, s) => acc + (s.points || 0), 0);
+                               const extraProduction = lecturerSubmissions.filter(s => s.type === 'PRODUCCION').reduce((acc, s) => acc + (s.points || 0), 0);
+
+                               const totalExperience = (salary.pointsExperience || 0) + extraExperience;
+                               const totalCategory = (salary.pointsCategory || 0) + extraCategory;
+                               const totalProduction = (salary.pointsProduction || 0) + extraProduction;
+
+                               const total = totalTitles + totalExperience + totalCategory + totalProduction;
                                
                                return (
                                  <tr key={lecturer._id} className="hover:bg-slate-50/50 transition-colors group">
@@ -780,10 +796,10 @@ export default function CiarpAdminClient({ data, user }: Props) {
                                           {lecturer.profile?.contractType || 'CARRERA'}
                                        </span>
                                     </td>
-                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500 bg-slate-100/30">{salary.pointsTitles || 0}</td>
-                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500">{salary.pointsExperience || 0}</td>
-                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500 bg-slate-100/30">{salary.pointsCategory || 0}</td>
-                                    <td className="p-8 text-center text-xs font-serif italic text-primary/70 font-bold">{salary.pointsProduction || 0}</td>
+                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500 bg-slate-100/30">{totalTitles}</td>
+                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500">{totalExperience}</td>
+                                    <td className="p-8 text-center text-xs font-serif italic text-slate-500 bg-slate-100/30">{totalCategory}</td>
+                                    <td className="p-8 text-center text-xs font-serif italic text-primary/70 font-bold">{totalProduction}</td>
                                     <td className="p-8 text-center bg-slate-900/[0.02] border-x border-slate-50">
                                        <div className="text-xl font-serif italic font-black text-slate-900">{total}</div>
                                        <div className="text-[7px] text-slate-400 uppercase font-black tracking-tighter">Puntos Salariales</div>

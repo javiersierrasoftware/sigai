@@ -142,3 +142,15 @@ export async function getProjectsByUser(userEmail?: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getRubricById(id: string) {
+  try {
+    await connectDB();
+    const Rubric = (await import('@/lib/models/Rubric')).default;
+    const rubric = await Rubric.findById(id).lean();
+    if (!rubric) return { success: false, error: 'Rúbrica no encontrada' };
+    return { success: true, data: JSON.parse(JSON.stringify(rubric)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
