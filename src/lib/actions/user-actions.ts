@@ -87,6 +87,10 @@ export async function fetchResearcherMetrics() {
     const user = await User.findById(session.user.id);
     if (!user || !user.profile) throw new Error('Perfil no encontrado');
 
+    const AcademicItem = (await import('@/lib/models/AcademicItem')).default;
+    const Project = (await import('@/lib/models/Project')).default;
+    const ProjectEvaluation = (await import('@/lib/models/ProjectEvaluation')).default;
+
     const result = {
       scholar: { citations: "---", hIndex: "--", i10Index: "--", lastUpdate: new Date().toISOString() },
       orcid: { works: 0, education: 0, employments: 0 },
@@ -133,21 +137,51 @@ export async function fetchResearcherMetrics() {
               }
            }
         });
-
-        // Mock Projects Trend (Institutional data simulation)
-        // Usually fetched from a Projects collection
-        result.projectsTrend = years.map((y, i) => ({ year: y, total: i * 2 + Math.floor(Math.random() * 3) }));
-
-        // Node generation based on real data
-        const nodeCount = Math.max(8, Math.min(20, result.orcid.works + 5));
-        result.ontology = Array.from({ length: nodeCount }).map((_, i) => ({
-          type: i % 4 === 0 ? "PUBLICATION" : i % 4 === 1 ? "INSTITUTION" : "RESEARCHER",
-          id: i
-        }));
       } catch (e) {
         console.error("ORCID Fetch Error:", e);
       }
     }
+
+    // 1.5. Aggregate production from DATABASE (Internal SIGAI)
+    const localItems = await AcademicItem.find({
+       users: session.user.id,
+       type: 'PRODUCCION'
+    }).lean();
+
+    localItems.forEach((item: any) => {
+       const year = new Date(item.date).getFullYear();
+       if (years.includes(year)) {
+          const trendIdx = result.productionTrend.findIndex(t => t.year === year);
+          if (trendIdx !== -1) {
+             const st = (item.subtype || "").toLowerCase();
+             if (st.includes('artículo') || st.includes('articulo')) result.productionTrend[trendIdx].articles++;
+             else if (st.includes('capítulo') || st.includes('capitulo')) result.productionTrend[trendIdx].chapters++;
+             else result.productionTrend[trendIdx].others++;
+          }
+       }
+    });
+
+    // 1.6. Aggregate PROJECTS from DATABASE (Internal SIGAI)
+    const localProjects = await Project.find({
+       $or: [{ leaderEmail: session.user.email }, { "teamMembers.email": session.user.email }]
+    }).lean();
+
+    localProjects.forEach((p: any) => {
+       const year = new Date(p.startDate || p.createdAt).getFullYear();
+       if (years.includes(year)) {
+          const trendIdx = result.projectsTrend.findIndex(t => t.year === year);
+          if (trendIdx !== -1) {
+             result.projectsTrend[trendIdx].total++;
+          }
+       }
+    });
+
+    // Node generation based on real data
+    const nodeCount = Math.max(8, Math.min(20, result.orcid.works + 5));
+    result.ontology = Array.from({ length: nodeCount }).map((_, i) => ({
+      type: i % 4 === 0 ? "PUBLICATION" : i % 4 === 1 ? "INSTITUTION" : "RESEARCHER",
+      id: i
+    }));
 
     // 2. GOOGLE SCHOLAR REAL FETCH (HTML Parsing)
     if (user.profile.googleScholarUrl) {
@@ -202,11 +236,6 @@ export async function fetchResearcherMetrics() {
        linesCount: { value: profile.researchLines?.length || 0, label: "Líneas de Investigación" },
        groupsCount: { value: profile.researchGroups?.length || 0, label: "Grupos de Investigación" }
     };
-
-    // 4. INSTITUTIONAL PRODUCTS AND EVALUATIONS COUNT
-    const AcademicItem = (await import('@/lib/models/AcademicItem')).default;
-    const Project = (await import('@/lib/models/Project')).default;
-    const ProjectEvaluation = (await import('@/lib/models/ProjectEvaluation')).default;
 
     const evaluationsCount = await ProjectEvaluation.countDocuments({ 
        evaluatorEmail: session.user.email,

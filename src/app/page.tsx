@@ -70,16 +70,6 @@ export default async function LandingPage() {
            </div>
         </section>
       </main>
-
-      {/* Institutional Footer */}
-      <footer className="bg-slate-50 border-t border-slate-100 py-12 px-12">
-        <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-           <p className="font-serif text-2xl text-slate-400 mb-4 tracking-tight">SIGAI</p>
-           <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-slate-300">
-             © {new Date().getFullYear()} Universidad de Sucre — Gestión Académica e Investigativa
-           </p>
-        </div>
-      </footer>
     </div>
   );
 }

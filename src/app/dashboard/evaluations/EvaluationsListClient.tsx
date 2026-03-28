@@ -36,21 +36,10 @@ export default function EvaluationsListClient({ evaluations }: Props) {
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-8">
            <div>
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm shadow-emerald-100">
-                    <Star className="h-6 w-6" />
-                 </div>
-                 <Link href="/dashboard">
-                    <button className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 hover:text-primary transition-all shadow-sm border border-slate-100">
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                 </Link>
-                 <h2 className="text-[11px] font-black text-primary uppercase tracking-[0.2em]">Institutional Peer-Review Cycle</h2>
-              </div>
-              <h1 className="text-5xl font-serif text-slate-800 tracking-tighter italic">Terminal de Evaluación DIUS</h1>
-              <p className="text-slate-400 font-bold text-sm mt-3 opacity-80 uppercase tracking-widest max-w-lg leading-relaxed">Gestione la calidad de la investigación institucional mediante la rúbrica de calificación por pares.</p>
+              <h1 className="text-3xl font-serif text-slate-800 tracking-tight italic">Terminal de Evaluación DIUS</h1>
+              <p className="text-slate-400 font-bold text-[10px] mt-1 opacity-80 uppercase tracking-widest max-w-lg leading-relaxed">Gestione la calidad de la investigación institucional mediante la rúbrica de calificación por pares.</p>
            </div>
            
            <div className="bg-white/80 backdrop-blur-xl border border-slate-100 p-2 rounded-3xl flex gap-1 shadow-sm">

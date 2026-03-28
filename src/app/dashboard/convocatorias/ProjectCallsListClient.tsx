@@ -47,14 +47,7 @@ export default function ProjectCallsListClient({ initialCalls }: Props) {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-8 pb-10">
-        {/* Navigation & Header */}
-        <div className="flex items-center justify-between py-2 border-b border-slate-100 mb-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <Link href="/dashboard">SIGAI</Link>
-            <span className="text-slate-200">/</span>
-            <span className="text-primary">Convocatorias Abiertas</span>
-          </div>
-        </div>
+        {/* Page Content Header */}
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>

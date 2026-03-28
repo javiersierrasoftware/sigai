@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import { sendToCiarp } from "@/lib/actions/academic-actions"
 import MeritRegistrationModal from "./MeritRegistrationModal"
 import CiarpSubmissionModal from "./CiarpSubmissionModal"
+import DashboardHeader from "@/components/dashboard/DashboardHeader"
 
 interface Props {
   history: any[]
@@ -75,19 +76,20 @@ export default function AcademicHistoryClient({ history, user }: Props) {
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
+      <DashboardHeader 
+        user={user} 
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Historia Docente', active: true }
+        ]} 
+      />
+      
       {/* Header & Nav */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">
-             <button onClick={() => window.location.href='/dashboard'} className="hover:text-primary transition-colors flex items-center gap-1">
-                <ChevronLeft className="h-3 w-3" /> Volver al Dashboard
-             </button>
-             <span>/</span>
-             <span className="text-primary tracking-widest">Historia Docente (Dcto 1279)</span>
-          </div>
-          <h1 className="text-4xl font-serif text-slate-800 tracking-tight italic">Evolución de Carrera</h1>
-          <p className="text-slate-400 mt-2 text-[10px] font-bold uppercase tracking-widest leading-relaxed">Registro sistémico de méritos académicos, producción intelectual y experiencia calificada.</p>
+          <h1 className="text-3xl font-serif text-slate-800 tracking-tight italic">Evolución de Carrera</h1>
+          <p className="text-slate-400 mt-1 text-[10px] font-bold uppercase tracking-widest leading-relaxed">Registro sistémico de méritos académicos, producción intelectual y experiencia calificada.</p>
         </div>
 
         <div className="flex items-center gap-3">

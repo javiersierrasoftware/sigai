@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { fetchResearcherMetrics } from "@/lib/actions/user-actions";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import Link from "next/link";
 import {
   BarChart as ReBarChart,
@@ -159,32 +160,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-8 pb-10">
-        {/* Top Navigation Bar / Breadcrumbs */}
-        <div className="flex items-center justify-between py-2 border-b border-slate-100 mb-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <span>SIGAI</span>
-            <span className="text-slate-200">/</span>
-            <span className="text-primary">Dashboard</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/profile" className="flex items-center gap-3 pr-4 border-r border-slate-100 group">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors leading-none">{user.fullName}</p>
-                <p className="text-[10px] font-bold text-primary uppercase tracking-tighter mt-1">{user.role}</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                <UserIcon className="h-5 w-5" />
-              </div>
-            </Link>
-            <button
-              onClick={() => logoutAction()}
-              className="flex items-center gap-2 text-slate-400 hover:text-red-500 transition-colors group"
-            >
-              <LogOut className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </div>
+        <DashboardHeader user={user} breadcrumbs={[{ label: 'Dashboard', active: true }]} />
 
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

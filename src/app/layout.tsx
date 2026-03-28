@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import DashboardFooter from "@/components/dashboard/DashboardFooter";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const newsreader = Newsreader({ 
@@ -34,6 +35,7 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
+          <DashboardFooter />
           
           {/* Background Decorative Elements */}
           <div className="fixed inset-0 -z-10 h-full w-full bg-slate-50 [background:radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />

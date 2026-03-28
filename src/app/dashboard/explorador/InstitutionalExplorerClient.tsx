@@ -71,28 +71,19 @@ export default function InstitutionalExplorerClient({ initialData }: Props) {
   return (
     <main className="min-h-screen bg-[#F8FAFC] pb-24 font-outfit">
       
-      {/* Dynamic Header with Navigation & Title */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard">
-              <button className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-primary transition-all">
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            </Link>
-            <div>
-               <h1 className="text-2xl font-serif text-slate-800 tracking-tight">Explorador SIGAI</h1>
-               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Centro de Inteligencia Investigativa e Institucional</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-             <Button variant="outline" className="h-12 px-6 rounded-2xl border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[10px] gap-2">
-                <Download className="h-4 w-4" /> Exportar Reporte
-             </Button>
-             <Button className="h-12 px-8 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200">
-                <Share2 className="mr-2 h-4 w-4" /> Publicar Hallazgos
-             </Button>
-          </div>
+      {/* Dynamic Header Section for Actions */}
+      <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6 bg-white/40 backdrop-blur-sm p-6 rounded-[2rem] border border-white/60">
+        <div>
+           <h1 className="text-3xl font-serif text-slate-800 tracking-tight italic">Explorador SIGAI</h1>
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Centro de Inteligencia Investigativa e Institucional</p>
+        </div>
+        <div className="flex items-center gap-3">
+           <Button variant="outline" className="h-11 px-6 rounded-2xl border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[9px] gap-2 hover:bg-white transition-all">
+              <Download className="h-4 w-4" /> Exportar Reporte
+           </Button>
+           <Button className="h-11 px-8 bg-slate-900 hover:bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-slate-200 transition-all">
+              <Share2 className="mr-2 h-4 w-4" /> Publicar Hallazgos
+           </Button>
         </div>
       </div>
 

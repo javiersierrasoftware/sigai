@@ -191,18 +191,11 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-x-12 gap-y-4">
-      {/* Breadcrumbs and Header */}
-      <div className="lg:col-span-4 mb-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">
-           <button onClick={() => window.location.href='/dashboard'} className="hover:text-primary transition-colors flex items-center gap-1" type="button">
-              <ChevronLeft className="h-3 w-3" /> Dashboard
-           </button>
-           <span>/</span>
-           <span className="text-primary">Mi Perfil Profesional</span>
-        </div>
-        <h1 className="text-4xl font-serif text-slate-800 tracking-tight">Perfeccione su Perfil</h1>
-        <p className="text-slate-400 mt-2 text-[10px] font-bold uppercase tracking-widest">Asegure su visibilidad en el ecosistema científico institucional</p>
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-x-12 gap-y-8">
+      {/* Informative Header (optional, but keep it clean) */}
+      <div className="lg:col-span-4 mb-2">
+        <h1 className="text-3xl font-serif text-slate-800 tracking-tight">Perfeccione su Perfil</h1>
+        <p className="text-slate-400 mt-1 text-[10px] font-bold uppercase tracking-widest leading-relaxed">Asegure su visibilidad en el ecosistema científico institucional con datos precisos</p>
       </div>
 
       {/* Sidebar Navigation */}

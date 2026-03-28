@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from 'next/link'
 import { logoutAction } from '@/lib/actions/auth-actions'
+import DashboardHeader from '@/components/dashboard/DashboardHeader'
 // Import server actions (Need to ensure these exist)
 import { createActa, updateActa, evaluateSubmission, bulkEvaluateSubmissions } from "@/lib/actions/ciarp-actions"
 import { calculateCumulativeTitlePoints } from "@/lib/utils/decreto-1279"
@@ -219,34 +220,13 @@ export default function CiarpAdminClient({ data, user }: Props) {
     <div className="min-h-screen bg-white">
        {/* Global SIGAI Navigation Header */}
        <div className="mx-auto max-w-7xl px-8 pt-8 pb-4">
-          <div className="flex items-center justify-between py-2 border-b border-slate-100 mb-6 transition-all duration-300">
-             <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <Link href="/dashboard" className="hover:text-primary transition-colors">SIGAI</Link>
-                <span className="text-slate-200">/</span>
-                <Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
-                <span className="text-slate-200">/</span>
-                <span className="text-emerald-500 font-black">Comité CIARP</span>
-             </div>
-
-             <div className="flex items-center gap-6">
-                <Link href="/dashboard/profile" className="flex items-center gap-3 pr-6 border-r border-slate-100 group">
-                   <div className="text-right hidden sm:block">
-                      <p className="text-[11px] font-black text-slate-900 group-hover:text-primary transition-all leading-none">{user.fullName}</p>
-                      <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">{user.role}</p>
-                   </div>
-                   <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
-                      <User className="h-4 w-4" />
-                   </div>
-                </Link>
-                <button
-                   onClick={() => logoutAction()}
-                   className="flex items-center gap-2 text-slate-400 hover:text-red-500 transition-all group"
-                   title="Cerrar sesión"
-                >
-                   <LogOut className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </button>
-             </div>
-          </div>
+          <DashboardHeader 
+            user={user} 
+            breadcrumbs={[
+              { label: 'Dashboard', href: '/dashboard' },
+              { label: 'Comité CIARP', active: true }
+            ]} 
+          />
        </div>
 
        <div className="mx-auto max-w-7xl px-8 py-4 space-y-12">
