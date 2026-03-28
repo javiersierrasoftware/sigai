@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -109,10 +109,11 @@ const itemVariants = {
 export default function DashboardContent({ user }: DashboardContentProps) {
   const [mounted, setMounted] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
-  const [metrics, setMetrics] = useState({
+  const [activeNode, setActiveNode] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>({
     scholar: { citations: "---", hIndex: "--", i10Index: "--", lastUpdate: new Date().toISOString() as any },
     orcid: { works: 0, education: 0, employments: 0 },
-    ontology: [] as any[],
+    ontology: null,
     productionTrend: [] as any[],
     projectsTrend: [] as any[],
     links: { scholar: '' as string | undefined, orcid: '' as string | undefined },
@@ -140,6 +141,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
       const res = await fetchResearcherMetrics();
       if (res.success && res.data) {
          setMetrics(res.data);
+         console.log("📈 DATOS PARA EL DIAGRAMA ONTOLÓGICO:", res.data.ontology);
       }
       setLoadingMetrics(false);
     }
@@ -373,79 +375,210 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     <Share2 className="h-5 w-5 text-primary/70" />
                     Mapa Ontológico
                   </h2>
-                  <Activity className={cn("h-4 w-4 text-emerald-400", loadingMetrics ? "animate-spin" : "animate-pulse")} />
+              <Activity className={cn("h-4 w-4 text-emerald-400", loadingMetrics ? "animate-spin" : "animate-pulse")} />
                 </div>
 
                 <div className="p-4 flex-1 relative flex items-center justify-center min-h-[300px] overflow-hidden">
-                  {/* Custom SVG Network Visualization */}
-                  <svg viewBox="0 0 200 200" className={cn("w-full h-full max-h-[320px] drop-shadow-2xl overflow-visible transition-opacity", loadingMetrics ? "opacity-20" : "opacity-100")}>
+                  {/* Floating Context Tooltip */}
+                  <AnimatePresence>
+                    {activeNode && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-4 rounded-3xl max-w-[280px] pointer-events-none"
+                      >
+                         <div className="flex items-center gap-3 mb-2">
+                           <div className={cn(
+                              "h-3 w-3 rounded-full animate-pulse",
+                              activeNode.type === 'Work' ? "bg-emerald-500" : activeNode.type === 'Person' ? "bg-primary" : activeNode.type === 'Concept' ? "bg-amber-500" : "bg-blue-500"
+                           )} />
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                              {activeNode.type === 'Work' && activeNode.subtype === 'PROYECTO' ? "Proyecto de Investigación" : 
+                               activeNode.type === 'Work' ? "Producción Científica" :
+                               activeNode.type === 'Concept' ? "Línea de Interés" :
+                               activeNode.type === 'Organization' ? "Afiliación Institucional" : "Investigador"}
+                           </span>
+                         </div>
+                         <h4 className="text-xs font-bold text-slate-800 leading-relaxed font-outfit">
+                            {activeNode.name || activeNode.title}
+                         </h4>
+                         {activeNode.totalInOrbit && (
+                            <div className="mt-2 flex items-center gap-2 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg w-fit">
+                               <Share2 className="h-3 w-3" /> Node {activeNode.index + 1} of {activeNode.totalInOrbit} metadata items
+                            </div>
+                         )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Dynamic Graph Implementation */}
+                  <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl">
                     <defs>
-                      <radialGradient id="nodeGradient" cx="50%" cy="50%" r="50%">
+                      <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#10b981" />
                         <stop offset="100%" stopColor="#059669" />
-                      </radialGradient>
+                      </linearGradient>
+                      <filter id="glow">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
                     </defs>
-                    
-                    {/* Connections */}
-                    {Array.from({ length: Math.max(8, metrics.orcid.works > 0 ? Math.min(15, metrics.orcid.works) : 8) }).map((_, i, arr) => {
-                       const angle = (i / arr.length) * Math.PI * 2;
-                       const r = 75;
-                       const x = 100 + Math.cos(angle) * r;
-                       const y = 100 + Math.sin(angle) * r;
+
+                    {/* Render Relations/Paths */}
+                    {metrics.ontology?.relations?.map((rel: any, i: number) => {
+                       const target = [
+                          ...(metrics.ontology.works || []), 
+                          ...(metrics.ontology.organizations || []),
+                          ...(metrics.ontology.concepts || []),
+                          ...(metrics.ontology.persons || [])
+                       ].find(e => e.id === rel.to);
+                       if (!target) return null;
+
+                       const isWork = target.type === 'Work';
+                       const isConcept = target.type === 'Concept';
+                       const isOrg = target.type === 'Organization';
+                       
+                       const arrRef = isWork ? (metrics.ontology.works || []) : isConcept ? (metrics.ontology.concepts || []) : (metrics.ontology.organizations || []);
+                       const idx = arrRef.findIndex((e: any) => e.id === target.id);
+                       const total = arrRef.length || 1;
+                       
+                       const angle = (idx / total) * Math.PI * 2;
+                       const r = isWork ? 85 : isConcept ? 65 : 45;
+                       const x2 = 100 + Math.cos(angle) * r;
+                       const y2 = 100 + Math.sin(angle) * r;
+
                        return (
-                         <motion.line 
-                           key={`line-${i}`}
-                           x1="100" y1="100" x2={x} y2={y} 
-                           stroke="#f1f5f9" 
-                           strokeWidth="0.8" 
-                           initial={{ pathLength: 0, opacity: 0 }}
-                           animate={{ pathLength: 1, opacity: 1 }}
-                           transition={{ duration: 2, delay: i * 0.1 }}
-                         />
-                       )
+                          <motion.line 
+                            key={`rel-${i}`}
+                            x1="100" y1="100" x2={x2} y2={y2}
+                            stroke={isWork ? "#e2e8f0" : isConcept ? "#fff7ed" : "#94a3b8"}
+                            strokeWidth="0.4"
+                            strokeOpacity={0.4}
+                            initial={{ pathLength: 0, opacity: 0 }}
+                            animate={{ pathLength: 1, opacity: 0.3 }}
+                          />
+                       );
                     })}
-                    
-                    {/* Outer Nodes */}
-                    {Array.from({ length: Math.max(8, metrics.orcid.works > 0 ? Math.min(15, metrics.orcid.works) : 8) }).map((_, i, arr) => {
-                       const angle = (i / arr.length) * Math.PI * 2;
-                       const r = 75;
-                       const x = 100 + Math.cos(angle) * r;
-                       const y = 100 + Math.sin(angle) * r;
-                       return (
+
+                    {/* Organizations Nodes (Inner Orbit) */}
+                    {metrics.ontology?.organizations?.map((org: any, i: number, arr: any[]) => {
+                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                        const r = 45;
+                        const x = 100 + Math.cos(angle) * r;
+                        const y = 100 + Math.sin(angle) * r;
+                        return (
+                          <g key={`org-${org.id}`} 
+                             className="group cursor-pointer"
+                             onMouseEnter={() => setActiveNode(org)}
+                             onMouseLeave={() => setActiveNode(null)}
+                          >
+                             <motion.circle 
+                                cx={x} cy={y} r="7" 
+                                fill="#3b82f6"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.3, fill: "#2563eb" }}
+                                transition={{ type: "spring", stiffness: 300 }}
+                             />
+                             {i === 0 && (
+                                <text x={x} y={y + 12} textAnchor="middle" className="text-[3px] font-black fill-blue-600/60 uppercase tracking-tighter pointer-events-none">
+                                   {org.name.split(' ')[0]}
+                                </text>
+                             )}
+                          </g>
+                        )
+                    })}
+
+                    {/* Concepts Nodes (Middle Orbit - Interests) */}
+                    {metrics.ontology?.concepts?.map((c: any, i: number, arr: any[]) => {
+                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                        const r = 65;
+                        const x = 100 + Math.cos(angle) * r;
+                        const y = 100 + Math.sin(angle) * r;
+                        return (
+                          <g key={`concept-${c.id}`} 
+                             className="group cursor-pointer"
+                             onMouseEnter={() => setActiveNode(c)}
+                             onMouseLeave={() => setActiveNode(null)}
+                          >
+                             <motion.circle 
+                                cx={x} cy={y} r="6" 
+                                fill="#f59e0b"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.3, fill: "#d97706" }}
+                                transition={{ type: "spring", stiffness: 300 }}
+                             />
+                          </g>
+                        )
+                    })}
+
+                    {/* Works Nodes (Outer Orbit) */}
+                    {metrics.ontology?.works?.map((work: any, i: number, arr: any[]) => {
+                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                        const r = 85;
+                        const x = 100 + Math.cos(angle) * r;
+                        const y = 100 + Math.sin(angle) * r;
+                        return (
+                          <g key={`work-${work.id || i}`} 
+                             className="group cursor-pointer"
+                             onMouseEnter={() => setActiveNode({ ...work, index: i, totalInOrbit: arr.length })}
+                             onMouseLeave={() => setActiveNode(null)}
+                          >
+                             <motion.circle 
+                                cx={x} cy={y} r="5" 
+                                fill={work.subtype === 'PROYECTO' ? "#6366f1" : (i % 2 === 0 ? "#10b981" : "#059669")}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.5, fill: "#a855f7" }}
+                                transition={{ type: "spring", stiffness: 400 }}
+                             />
+                          </g>
+                        )
+                    })}
+
+                    {/* Central Entity (Principal Researcher) */}
+                    {metrics.ontology?.persons?.filter((p: any) => p.isPrincipal).map((p: any) => (
+                      <g key={p.id} 
+                         className="group cursor-pointer"
+                         onMouseEnter={() => setActiveNode(p)}
+                         onMouseLeave={() => setActiveNode(null)}
+                      >
                          <motion.circle 
-                           key={`node-${i}`}
-                           cx={x} cy={y} r="6" 
-                           fill={i % 3 === 0 ? "#10b981" : i % 3 === 1 ? "#3b82f6" : "#f59e0b"} 
-                           className="cursor-pointer"
+                           cx="100" cy="100" r="14" 
+                           fill="url(#nodeGradient)"
+                           filter="url(#glow)"
                            initial={{ scale: 0 }}
-                           animate={{ scale: [1, 1.1, 1], y: [0, -2, 0] }}
-                           transition={{ duration: 4, repeat: Infinity, delay: i * 0.2 }}
+                           animate={{ scale: [1, 1.05, 1] }}
+                           transition={{ duration: 3, repeat: Infinity }}
                          />
-                       )
-                    })}
-                    
-                    {/* Central Node */}
-                    <motion.circle 
-                      cx="100" cy="100" r="16" 
-                      fill="url(#nodeGradient)"
-                      className="cursor-pointer"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.8 }}
-                    />
+                         <text x="100" y="100" textAnchor="middle" className="text-[4px] font-black fill-white uppercase tracking-widest pointer-events-none">
+                            {(p.name || user.fullName || "").split(' ')[0]}
+                         </text>
+                      </g>
+                    ))}
                   </svg>
+
+                  {/* Dynamic Tooltip Simulation (using SVG <title> for simplicity or custom overlay if needed) */}
+                  <div className="absolute top-4 right-6">
+                    <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 animate-pulse border border-emerald-100">
+                       <Activity className="h-4 w-4" />
+                    </div>
+                  </div>
 
                   {/* Legend Overlay */}
                   <div className="absolute bottom-6 left-8 space-y-2 pointer-events-none bg-white/80 backdrop-blur-md p-3 rounded-2xl border border-slate-100 shadow-sm">
                     {[
-                      { l: "Año", c: "bg-slate-400" },
-                      { l: "Institución", c: "bg-blue-400" },
-                      { l: "Investigador", c: "bg-amber-500" },
-                      { l: "Publicación", c: "bg-purple-500" },
-                      { l: "Revista", c: "bg-emerald-500" }
+                      { l: "Institución / Grupo", c: "bg-blue-500" },
+                      { l: "Producción / Obra", c: "bg-emerald-500" },
+                      { l: "Línea / Interés", c: "bg-amber-500" },
+                      { l: "Investigador", c: "bg-primary" }
                     ].map((l, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <div className={cn("h-2 w-2 rounded-sm", l.c)} />
+                        <div className={cn("h-2 w-2 rounded-full", l.c)} />
                         <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{l.l}</span>
                       </div>
                     ))}

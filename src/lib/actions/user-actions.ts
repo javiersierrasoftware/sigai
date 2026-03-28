@@ -94,7 +94,7 @@ export async function fetchResearcherMetrics() {
     const result = {
       scholar: { citations: "---", hIndex: "--", i10Index: "--", lastUpdate: new Date().toISOString() },
       orcid: { works: 0, education: 0, employments: 0 },
-      ontology: [] as any[],
+      ontology: null as any,
       productionTrend: [] as any[],
       projectsTrend: [] as any[]
     };
@@ -110,6 +110,28 @@ export async function fetchResearcherMetrics() {
     const orcidIdMatch = orcidUrl.match(/0000-000[1-3]-\d{4}-\d{3}[\dX]/);
     const orcidId = orcidIdMatch ? orcidIdMatch[0] : null;
 
+    const personId = orcidId ? `https://orcid.org/${orcidId}` : `user:${session.user.id}`;
+    result.ontology = {
+       persons: [
+          { id: personId, type: "Person", name: user.fullName, isPrincipal: true }
+       ],
+       works: [] as any[],
+       organizations: [
+          { id: "org:unisucre", type: "Organization", name: "Universidad de Sucre" },
+          ...(user.profile?.researchGroups || []).map((g: any) => ({
+             id: `group:${g._id || Math.random()}`,
+             type: "Organization",
+             name: g.name || "Grupo de Investigación"
+          }))
+       ],
+       concepts: (user.profile?.researchLines || []).map((l: any) => ({
+          id: `line:${l._id || Math.random()}`,
+          type: "Concept",
+          name: typeof l === 'string' ? l : (l.name || "Línea de Investigación")
+       })),
+       relations: [] as any[]
+    };
+
     if (orcidId) {
       try {
         const response = await fetch(`https://pub.orcid.org/v3.0/${orcidId}/record`, {
@@ -123,6 +145,23 @@ export async function fetchResearcherMetrics() {
           education: data['activities-summary']?.['educations']?.['education-summary']?.length || 0,
           employments: data['activities-summary']?.['employments']?.['affiliation-group']?.length || 0,
         };
+
+        // Add ORCID works to ontology
+        works.slice(0, 8).forEach((w: any) => {
+           result.ontology.works.push({
+              id: w['work-summary']?.[0]?.['external-ids']?.['external-id']?.[0]?.['external-id-value'] || `work:${Math.random()}`,
+              type: "Work",
+              title: w['work-summary']?.[0]?.title?.title?.value || "Sin título"
+           });
+        });
+
+        // Create relations
+        result.ontology.works.forEach((w: any) => {
+           result.ontology.relations.push({ from: personId, to: w.id, type: "AUTHORED" });
+        });
+        result.ontology.organizations.forEach((org: any) => {
+           result.ontology.relations.push({ from: personId, to: org.id, type: "AFFILIATED_WITH" });
+        });
 
         // Aggregate production by year from ORCID
         works.forEach((w: any) => {
@@ -150,6 +189,32 @@ export async function fetchResearcherMetrics() {
 
     localItems.forEach((item: any) => {
        const year = new Date(item.date).getFullYear();
+       const workId = `db_work:${item._id}`;
+       
+       // Add to ontology works as well (Internal productions)
+       if (result.ontology.works.length < 15) {
+          result.ontology.works.push({
+             id: workId,
+             type: "Work",
+             subtype: item.subtype,
+             title: item.title || "Sin título"
+          });
+       }
+
+       // Extract and Add Co-authors to ontology
+       (item.authors || []).slice(0, 3).forEach((auth: any) => {
+          const authId = auth.userId ? `user:${auth.userId}` : `external:${auth.name}`;
+          if (!result.ontology.persons.find((p: any) => p.id === authId)) {
+             result.ontology.persons.push({
+                id: authId,
+                type: "Person",
+                name: auth.name,
+                isPrincipal: false
+             });
+          }
+          result.ontology.relations.push({ from: authId, to: workId, type: "AUTHORED" });
+       });
+
        if (years.includes(year)) {
           const trendIdx = result.productionTrend.findIndex(t => t.year === year);
           if (trendIdx !== -1) {
@@ -168,6 +233,17 @@ export async function fetchResearcherMetrics() {
 
     localProjects.forEach((p: any) => {
        const year = new Date(p.startDate || p.createdAt).getFullYear();
+       
+       // Add to ontology as well (Projects as a type of work)
+       if (result.ontology.works.length < 20) {
+          result.ontology.works.push({
+             id: `project:${p._id}`,
+             type: "Work",
+             subtype: "PROYECTO",
+             title: p.title || "Proyecto de Investigación"
+          });
+       }
+
        if (years.includes(year)) {
           const trendIdx = result.projectsTrend.findIndex(t => t.year === year);
           if (trendIdx !== -1) {
@@ -176,12 +252,17 @@ export async function fetchResearcherMetrics() {
        }
     });
 
-    // Node generation based on real data
-    const nodeCount = Math.max(8, Math.min(20, result.orcid.works + 5));
-    result.ontology = Array.from({ length: nodeCount }).map((_, i) => ({
-      type: i % 4 === 0 ? "PUBLICATION" : i % 4 === 1 ? "INSTITUTION" : "RESEARCHER",
-      id: i
-    }));
+    // FINAL RE-GENERATION OF RELATIONS with ALL sources
+    result.ontology.relations = []; // Clear and rebuild
+    result.ontology.works.forEach((w: any) => {
+       result.ontology.relations.push({ from: personId, to: w.id, type: "AUTHORED" });
+    });
+    result.ontology.organizations.forEach((org: any) => {
+       result.ontology.relations.push({ from: personId, to: org.id, type: "AFFILIATED_WITH" });
+    });
+    result.ontology.concepts?.forEach((c: any) => {
+       result.ontology.relations.push({ from: personId, to: c.id, type: "INTERESTED_IN" });
+    });
 
     // 2. GOOGLE SCHOLAR REAL FETCH (HTML Parsing)
     if (user.profile.googleScholarUrl) {
