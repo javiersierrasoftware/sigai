@@ -6,14 +6,15 @@ import {
   X, Search, Plus, UserPlus, Check, Trash2, 
   HelpCircle, Calendar, GraduationCap, BookOpen, 
   Settings, Award, Globe, FileText, Briefcase,
-  Link, Hash, AtSign, MapPin
+  Link, Hash, AtSign, MapPin, Target
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { 
   searchInternalAuthors, 
   createAcademicItem, 
   updateAcademicItem,
-  lookupJournalByIssn 
+  lookupJournalByIssn,
+  getResearchLines
 } from "@/lib/actions/academic-actions"
 import { cn } from "@/lib/utils"
 
@@ -58,6 +59,9 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
   const [authors, setAuthors] = useState<any[]>([
     { userId: user.id || user._id, name: user.fullName, type: 'INTERNAL' }
   ])
+  const [researchLine, setResearchLine] = useState('')
+  const [keywords, setKeywords] = useState('')
+  const [allResearchLines, setAllResearchLines] = useState<any[]>([])
 
   // SEARCH FOR CO-AUTHORS
   const [authorSearch, setAuthorSearch] = useState('')
@@ -76,11 +80,22 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
       
       const type = MERIT_TYPES.find(t => t.label === initialItem.subtype || t.type === initialItem.type)
       setSelectedType(type || MERIT_TYPES[1])
+      setResearchLine(initialItem.researchLine || '')
+      setKeywords(Array.isArray(initialItem.keywords) ? initialItem.keywords.join(', ') : '')
       setStep(2)
     } else if (!isOpen) {
        resetForm()
     }
   }, [initialItem, isOpen])
+
+  // Fetch Research Lines
+  useEffect(() => {
+    async function fetchLines() {
+      const res = await getResearchLines()
+      if (res.success) setAllResearchLines(res.data)
+    }
+    fetchLines()
+  }, [])
 
   // ISSN Masking & Lookup
   const [issn, setIssn] = useState('')
@@ -124,6 +139,8 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
     setAuthorSearch('')
     setExternalInstitution('')
     setSearchResults([])
+    setResearchLine('')
+    setKeywords('')
   }
 
   const handleIssnChange = async (val: string) => {
@@ -198,6 +215,8 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
       radicationDate: new Date().toISOString().split('T')[0],
       totalAuthors: isIndividualMerit ? 1 : Math.max(totalAuthors, authors.length),
       authors: isIndividualMerit ? [{ userId: user.id || user._id, name: user.fullName, type: 'INTERNAL' }] : authors,
+      researchLine: (selectedType.id !== 'TI' && selectedType.id !== 'CD') ? researchLine : undefined,
+      keywords: (selectedType.id !== 'TI' && selectedType.id !== 'CD') ? keywords.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '') : [],
       metadata
     }
 
@@ -565,6 +584,50 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
                              <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[8px] font-bold uppercase tracking-widest rounded-full border border-amber-100">Pendiente: {(totalAuthors || 1) - authors.length}</span>
                            )}
                         </div>
+                        
+                        {/* INSTITUTIONAL LINE & KEYWORDS (Exclude TI and CD) */}
+                        {selectedType.id !== 'TI' && selectedType.id !== 'CD' && (
+                           <div className="md:col-span-2 pt-8 border-t border-slate-50 space-y-8">
+                             <div>
+                                <h4 className="flex items-center gap-2 text-xs font-serif text-slate-800 italic mb-1"><Target className="h-4 w-4 text-primary" /> Clasificación y Temáticas</h4>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">VINCULACIÓN INSTITUCIONAL</p>
+                             </div>
+                             
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Línea de Investigación Institucional</label>
+                                   <select 
+                                      value={researchLine} 
+                                      onChange={e => setResearchLine(e.target.value)}
+                                      className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner appearance-none transition-all hover:bg-slate-100"
+                                      required
+                                   >
+                                      <option value="">-- Seleccionar Línea --</option>
+                                      {allResearchLines.map(l => (
+                                         <option key={l._id} value={l._id}>{l.name}</option>
+                                      ))}
+                                   </select>
+                                </div>
+                                <div className="space-y-3">
+                                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center justify-between">
+                                      Palabras Clave (máx. 5)
+                                      <span className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">Separadas por coma</span>
+                                   </label>
+                                   <div className="relative">
+                                      <Hash className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                      <input 
+                                         type="text" 
+                                         value={keywords} 
+                                         onChange={e => setKeywords(e.target.value)}
+                                         placeholder="Ej: inteligencia artificial, docencia, algoritmos..."
+                                         className="w-full pl-14 pr-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner transition-all hover:bg-slate-100 placeholder:text-slate-300 italic" 
+                                         required
+                                      />
+                                   </div>
+                                </div>
+                             </div>
+                           </div>
+                        )}
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                            <div className="space-y-4">

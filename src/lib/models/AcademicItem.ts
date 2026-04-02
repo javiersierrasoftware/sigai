@@ -22,6 +22,8 @@ export interface IAcademicItem extends Document {
   evaluationReason?: string;
   fileUrl?: string;
   totalAuthors?: number;
+  researchLine?: mongoose.Types.ObjectId;
+  keywords?: string[];
   metadata: {
     issn?: string;
     journalName?: string;
@@ -67,6 +69,8 @@ const AcademicItemSchema: Schema = new Schema({
   evaluationReason: { type: String },
   fileUrl: { type: String },
   totalAuthors: { type: Number },
+  researchLine: { type: Schema.Types.ObjectId, ref: 'ResearchLine' },
+  keywords: [{ type: String }],
   metadata: { type: Schema.Types.Mixed },
   createdAt: { type: Date, default: Date.now }
 });

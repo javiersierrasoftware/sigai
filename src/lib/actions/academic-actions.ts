@@ -80,6 +80,8 @@ export async function createAcademicItem(data: any) {
       date: new Date(data.date),
       radicationDate: data.radicationDate ? new Date(data.radicationDate) : undefined,
       totalAuthors: data.totalAuthors || 1,
+      researchLine: data.researchLine || undefined,
+      keywords: data.keywords || [],
       fileUrl: data.fileUrl || undefined,
       metadata: data.metadata || {},
       status: 'REGISTRADO'
@@ -87,6 +89,17 @@ export async function createAcademicItem(data: any) {
 
     revalidatePath('/dashboard/academic-history');
     return { success: true, data: JSON.parse(JSON.stringify(newItem)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getResearchLines() {
+  try {
+    await connectDB();
+    const ResearchLine = (await import('@/lib/models/ResearchLine')).default;
+    const lines = await ResearchLine.find().sort({ name: 1 });
+    return { success: true, data: JSON.parse(JSON.stringify(lines)) };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -138,7 +151,9 @@ export async function updateAcademicItem(id: string, data: any) {
       {
         ...data,
         users: internalUserIds,
-        date: new Date(data.date)
+        date: new Date(data.date),
+        researchLine: data.researchLine || undefined,
+        keywords: data.keywords || []
       },
       { new: true }
     );

@@ -13,9 +13,10 @@ export default async function ApplyPage(props: { params: Promise<{ id: string }>
 
   const { id } = await props.params;
 
-  const [callRes, linesRes] = await Promise.all([
+  const [callRes, linesRes, groupsRes] = await Promise.all([
     getProjectCallById(id),
-    import("@/lib/actions/admin-actions").then(m => m.getResearchLines())
+    import("@/lib/actions/admin-actions").then(m => m.getResearchLines()),
+    import("@/lib/actions/admin-actions").then(m => m.getResearchGroups())
   ]);
 
   if (!callRes.data) return notFound();
@@ -25,6 +26,7 @@ export default async function ApplyPage(props: { params: Promise<{ id: string }>
       call={callRes.data} 
       user={session.user} 
       researchLines={linesRes.success ? linesRes.data : []} 
+      researchGroups={groupsRes.success ? groupsRes.data : []}
     />
   );
 }

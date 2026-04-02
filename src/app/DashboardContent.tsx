@@ -26,7 +26,8 @@ import {
   Share2,
   ExternalLink,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,51 @@ const itemVariants = {
   },
 };
 
+const KeywordCloud = ({ keywords }: { keywords: any[] }) => {
+  if (!keywords || keywords.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-slate-300 gap-4 py-12">
+        <Hash className="h-12 w-12 opacity-20" />
+        <p className="text-[10px] font-bold uppercase tracking-widest">Registre productos con palabras clave para ver esta nube</p>
+      </div>
+    );
+  }
+
+  const max = Math.max(...keywords.map(k => k.value));
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 max-w-4xl mx-auto py-8">
+      {keywords.map((kw, i) => {
+        const weight = kw.value / (max || 1);
+        const fontSize = 10 + weight * 38; // 10px to 48px
+        const colors = ["#10b981", "#3b82f6", "#f59e0b", "#6366f1", "#059669", "#8b5cf6", "#d97706", "#2563eb", "#ec4899"];
+        const color = colors[i % colors.length];
+        const opacity = 0.4 + (weight * 0.6);
+
+        return (
+          <motion.div
+            key={`${kw.text}-${i}`}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.1, y: -2, rotate: (i % 2 === 0 ? 2 : -2) }}
+            style={{
+              fontSize: `${fontSize}px`,
+              color: color,
+              fontWeight: weight > 0.8 ? '900' : (weight > 0.5 ? '700' : '500'),
+              opacity: opacity,
+              fontFamily: 'Outfit, sans-serif'
+            }}
+            className="cursor-default select-none tracking-tight leading-none px-2 transition-opacity duration-300"
+            title={`${kw.text}: ${kw.value} menciones`}
+          >
+            {kw.text}
+          </motion.div>
+        )
+      })}
+    </div>
+  );
+};
+
 export default function DashboardContent({ user }: DashboardContentProps) {
   const [mounted, setMounted] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -121,12 +167,12 @@ export default function DashboardContent({ user }: DashboardContentProps) {
     productsPerYear: '0',
     indexedPerYear: '0',
     profileStats: {
-       mincienciasCategory: "Sin Categoría",
-       age: { value: 0, label: "Edad" },
-       seniority: { value: 0, label: "Antigüedad" },
-       odsCount: { value: 0, label: "Impacto ODS", max: 17 },
-       linesCount: { value: 0, label: "Líneas de Investigación" },
-       groupsCount: { value: 0, label: "Grupos de Investigación" }
+      mincienciasCategory: "Sin Categoría",
+      age: { value: 0, label: "Edad" },
+      seniority: { value: 0, label: "Antigüedad" },
+      odsCount: { value: 0, label: "Impacto ODS", max: 17 },
+      linesCount: { value: 0, label: "Líneas de Investigación" },
+      groupsCount: { value: 0, label: "Grupos de Investigación" }
     },
     institutionalStats: null as { projects: number, researchers: number, products: number, titulos: number } | null,
     evaluationsCount: 0,
@@ -136,12 +182,12 @@ export default function DashboardContent({ user }: DashboardContentProps) {
 
   useEffect(() => {
     setMounted(true);
-    
+
     async function loadMetrics() {
       const res = await fetchResearcherMetrics();
       if (res.success && res.data) {
-         setMetrics(res.data);
-         console.log("📈 DATOS PARA EL DIAGRAMA ONTOLÓGICO:", res.data.ontology);
+        setMetrics(res.data);
+        console.log("📈 DATOS PARA EL DIAGRAMA ONTOLÓGICO:", res.data.ontology);
       }
       setLoadingMetrics(false);
     }
@@ -216,13 +262,13 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                 )}>
                   {metrics.institutionalStats ? (
                     idx === 0 ? metrics.institutionalStats.projects.toLocaleString() :
-                    idx === 1 ? metrics.institutionalStats.researchers.toLocaleString() :
-                    idx === 2 ? metrics.institutionalStats.products.toLocaleString() :
-                    metrics.institutionalStats.titulos.toLocaleString()
+                      idx === 1 ? metrics.institutionalStats.researchers.toLocaleString() :
+                        idx === 2 ? metrics.institutionalStats.products.toLocaleString() :
+                          metrics.institutionalStats.titulos.toLocaleString()
                   ) : (
                     idx === 0 ? metrics.activeProjectsCount.toLocaleString() :
-                    idx === 2 ? metrics.totalProducts.toLocaleString() : 
-                    card.value
+                      idx === 2 ? metrics.totalProducts.toLocaleString() :
+                        card.value
                   )}
                 </h3>
               </div>
@@ -259,9 +305,9 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                       <div className="flex items-center justify-between text-left">
                         <div className="flex items-center gap-5">
                           <div className={cn(
-                             "h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-300",
-                             statusMap[project.status]?.color.replace('text-', 'bg-').split(' ')[0] || "bg-slate-50",
-                             "bg-opacity-10 text-primary"
+                            "h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            statusMap[project.status]?.color.replace('text-', 'bg-').split(' ')[0] || "bg-slate-50",
+                            "bg-opacity-10 text-primary"
                           )}>
                             <BarChart3 className="h-6 w-6" />
                           </div>
@@ -288,13 +334,13 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                   ))
                 ) : (
                   <div className="p-20 text-center flex flex-col items-center gap-4 bg-slate-50/30">
-                     <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
-                        <BarChart3 className="h-8 w-8" />
-                     </div>
-                     <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No hay proyectos registrados</p>
-                        <p className="text-[10px] text-slate-300 mt-1 italic font-medium uppercase tracking-tighter">Inicie una nueva postulación para visualizar su actividad aquí.</p>
-                     </div>
+                    <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
+                      <BarChart3 className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No hay proyectos registrados</p>
+                      <p className="text-[10px] text-slate-300 mt-1 italic font-medium uppercase tracking-tighter">Inicie una nueva postulación para visualizar su actividad aquí.</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -303,7 +349,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
             {/* NEW: RESEARCH ANALYTICS ROW */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
               {/* Google Scholar Card */}
-              <motion.div 
+              <motion.div
                 variants={itemVariants}
                 className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col group/scholar"
               >
@@ -316,16 +362,16 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     Corte: {mounted ? new Date(metrics.scholar.lastUpdate).toLocaleDateString('es-CO', { month: '2-digit', year: 'numeric' }) : '--/----'}
                   </span>
                 </div>
-                         <div className="p-8 flex-1 flex flex-col justify-center">
+                <div className="p-8 flex-1 flex flex-col justify-center">
                   {!metrics.scholar.citations || metrics.scholar.citations === "---" ? (
                     <div className="text-center py-6 space-y-4">
-                       <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300">
-                          <Globe className="h-8 w-8" />
-                       </div>
-                       <div>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Enlace no detectado</p>
-                          <p className="text-[10px] text-slate-300 mt-1 uppercase">Configure su URL de Scholar en el perfil</p>
-                       </div>
+                      <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                        <Globe className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Enlace no detectado</p>
+                        <p className="text-[10px] text-slate-300 mt-1 uppercase">Configure su URL de Scholar en el perfil</p>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -342,10 +388,10 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                             <span className="text-sm font-bold text-slate-500 uppercase tracking-widest leading-none">{m.label}</span>
                           </div>
                           <div className={cn(
-                             "text-2xl font-serif tracking-tight transition-all",
-                             loadingMetrics ? "text-slate-200 blur-sm" : "text-slate-800"
+                            "text-2xl font-serif tracking-tight transition-all",
+                            loadingMetrics ? "text-slate-200 blur-sm" : "text-slate-800"
                           )}>
-                             {m.value}
+                            {m.value}
                           </div>
                         </div>
                       ))}
@@ -355,7 +401,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                   <div className="mt-10 pt-8 border-t border-slate-50">
                     <Link href={metrics.links.scholar || "/dashboard/profile"} target={metrics.links.scholar ? "_blank" : "_self"} className="w-full">
                       <Button variant="outline" className="w-full h-12 rounded-2xl border-sky-100 text-sky-600 font-bold uppercase tracking-widest text-[11px] hover:bg-sky-50 hover:border-sky-200 transition-all flex items-center justify-center gap-2 font-outfit">
-                         <ExternalLink className="h-4 w-4" /> {metrics.scholar.citations === "---" ? "Configurar Perfil" : "Ver Perfil en Scholar"}
+                        <ExternalLink className="h-4 w-4" /> {metrics.scholar.citations === "---" ? "Configurar Perfil" : "Ver Perfil en Scholar"}
                       </Button>
                     </Link>
                     <p className="text-[9px] text-slate-300 mt-4 text-center leading-relaxed font-medium uppercase tracking-tighter italic">
@@ -366,7 +412,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
               </motion.div>
 
               {/* Ontological Diagram Card */}
-              <motion.div 
+              <motion.div
                 variants={itemVariants}
                 className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col group/onto"
               >
@@ -375,39 +421,39 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     <Share2 className="h-5 w-5 text-primary/70" />
                     Mapa Ontológico
                   </h2>
-              <Activity className={cn("h-4 w-4 text-emerald-400", loadingMetrics ? "animate-spin" : "animate-pulse")} />
+                  <Activity className={cn("h-4 w-4 text-emerald-400", loadingMetrics ? "animate-spin" : "animate-pulse")} />
                 </div>
 
                 <div className="p-4 flex-1 relative flex items-center justify-center min-h-[300px] overflow-hidden">
                   {/* Floating Context Tooltip */}
                   <AnimatePresence>
                     {activeNode && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-4 rounded-3xl max-w-[280px] pointer-events-none"
                       >
-                         <div className="flex items-center gap-3 mb-2">
-                           <div className={cn(
-                              "h-3 w-3 rounded-full animate-pulse",
-                              activeNode.type === 'Work' ? "bg-emerald-500" : activeNode.type === 'Person' ? "bg-primary" : activeNode.type === 'Concept' ? "bg-amber-500" : "bg-blue-500"
-                           )} />
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                              {activeNode.type === 'Work' && activeNode.subtype === 'PROYECTO' ? "Proyecto de Investigación" : 
-                               activeNode.type === 'Work' ? "Producción Científica" :
-                               activeNode.type === 'Concept' ? "Línea de Interés" :
-                               activeNode.type === 'Organization' ? "Afiliación Institucional" : "Investigador"}
-                           </span>
-                         </div>
-                         <h4 className="text-xs font-bold text-slate-800 leading-relaxed font-outfit">
-                            {activeNode.name || activeNode.title}
-                         </h4>
-                         {activeNode.totalInOrbit && (
-                            <div className="mt-2 flex items-center gap-2 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg w-fit">
-                               <Share2 className="h-3 w-3" /> Node {activeNode.index + 1} of {activeNode.totalInOrbit} metadata items
-                            </div>
-                         )}
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={cn(
+                            "h-3 w-3 rounded-full animate-pulse",
+                            activeNode.type === 'Work' ? "bg-emerald-500" : activeNode.type === 'Person' ? "bg-primary" : activeNode.type === 'Concept' ? "bg-amber-500" : "bg-blue-500"
+                          )} />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                            {activeNode.type === 'Work' && activeNode.subtype === 'PROYECTO' ? "Proyecto de Investigación" :
+                              activeNode.type === 'Work' ? "Producción Científica" :
+                                activeNode.type === 'Concept' ? "Línea de Interés" :
+                                  activeNode.type === 'Organization' ? "Afiliación Institucional" : "Investigador"}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800 leading-relaxed font-outfit">
+                          {activeNode.name || activeNode.title}
+                        </h4>
+                        {activeNode.totalInOrbit && (
+                          <div className="mt-2 flex items-center gap-2 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg w-fit">
+                            <Share2 className="h-3 w-3" /> Node {activeNode.index + 1} of {activeNode.totalInOrbit} metadata items
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -420,144 +466,144 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                         <stop offset="100%" stopColor="#059669" />
                       </linearGradient>
                       <filter id="glow">
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                         <feMerge>
-                          <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+                          <feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" />
                         </feMerge>
                       </filter>
                     </defs>
 
                     {/* Render Relations/Paths */}
                     {metrics.ontology?.relations?.map((rel: any, i: number) => {
-                       const target = [
-                          ...(metrics.ontology.works || []), 
-                          ...(metrics.ontology.organizations || []),
-                          ...(metrics.ontology.concepts || []),
-                          ...(metrics.ontology.persons || [])
-                       ].find(e => e.id === rel.to);
-                       if (!target) return null;
+                      const target = [
+                        ...(metrics.ontology.works || []),
+                        ...(metrics.ontology.organizations || []),
+                        ...(metrics.ontology.concepts || []),
+                        ...(metrics.ontology.persons || [])
+                      ].find(e => e.id === rel.to);
+                      if (!target) return null;
 
-                       const isWork = target.type === 'Work';
-                       const isConcept = target.type === 'Concept';
-                       const isOrg = target.type === 'Organization';
-                       
-                       const arrRef = isWork ? (metrics.ontology.works || []) : isConcept ? (metrics.ontology.concepts || []) : (metrics.ontology.organizations || []);
-                       const idx = arrRef.findIndex((e: any) => e.id === target.id);
-                       const total = arrRef.length || 1;
-                       
-                       const angle = (idx / total) * Math.PI * 2;
-                       const r = isWork ? 85 : isConcept ? 65 : 45;
-                       const x2 = 100 + Math.cos(angle) * r;
-                       const y2 = 100 + Math.sin(angle) * r;
+                      const isWork = target.type === 'Work';
+                      const isConcept = target.type === 'Concept';
+                      const isOrg = target.type === 'Organization';
 
-                       return (
-                          <motion.line 
-                            key={`rel-${i}`}
-                            x1="100" y1="100" x2={x2} y2={y2}
-                            stroke={isWork ? "#e2e8f0" : isConcept ? "#fff7ed" : "#94a3b8"}
-                            strokeWidth="0.4"
-                            strokeOpacity={0.4}
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 0.3 }}
-                          />
-                       );
+                      const arrRef = isWork ? (metrics.ontology.works || []) : isConcept ? (metrics.ontology.concepts || []) : (metrics.ontology.organizations || []);
+                      const idx = arrRef.findIndex((e: any) => e.id === target.id);
+                      const total = arrRef.length || 1;
+
+                      const angle = (idx / total) * Math.PI * 2;
+                      const r = isWork ? 85 : isConcept ? 65 : 45;
+                      const x2 = 100 + Math.cos(angle) * r;
+                      const y2 = 100 + Math.sin(angle) * r;
+
+                      return (
+                        <motion.line
+                          key={`rel-${i}`}
+                          x1="100" y1="100" x2={x2} y2={y2}
+                          stroke={isWork ? "#e2e8f0" : isConcept ? "#fff7ed" : "#94a3b8"}
+                          strokeWidth="0.4"
+                          strokeOpacity={0.4}
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 0.3 }}
+                        />
+                      );
                     })}
 
                     {/* Organizations Nodes (Inner Orbit) */}
                     {metrics.ontology?.organizations?.map((org: any, i: number, arr: any[]) => {
-                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
-                        const r = 45;
-                        const x = 100 + Math.cos(angle) * r;
-                        const y = 100 + Math.sin(angle) * r;
-                        return (
-                          <g key={`org-${org.id}`} 
-                             className="group cursor-pointer"
-                             onMouseEnter={() => setActiveNode(org)}
-                             onMouseLeave={() => setActiveNode(null)}
-                          >
-                             <motion.circle 
-                                cx={x} cy={y} r="7" 
-                                fill="#3b82f6"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                whileHover={{ scale: 1.3, fill: "#2563eb" }}
-                                transition={{ type: "spring", stiffness: 300 }}
-                             />
-                             {i === 0 && (
-                                <text x={x} y={y + 12} textAnchor="middle" className="text-[3px] font-black fill-blue-600/60 uppercase tracking-tighter pointer-events-none">
-                                   {org.name.split(' ')[0]}
-                                </text>
-                             )}
-                          </g>
-                        )
+                      const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                      const r = 45;
+                      const x = 100 + Math.cos(angle) * r;
+                      const y = 100 + Math.sin(angle) * r;
+                      return (
+                        <g key={`org-${org.id}`}
+                          className="group cursor-pointer"
+                          onMouseEnter={() => setActiveNode(org)}
+                          onMouseLeave={() => setActiveNode(null)}
+                        >
+                          <motion.circle
+                            cx={x} cy={y} r="7"
+                            fill="#3b82f6"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.3, fill: "#2563eb" }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                          />
+                          {i === 0 && (
+                            <text x={x} y={y + 12} textAnchor="middle" className="text-[3px] font-black fill-blue-600/60 uppercase tracking-tighter pointer-events-none">
+                              {org.name.split(' ')[0]}
+                            </text>
+                          )}
+                        </g>
+                      )
                     })}
 
                     {/* Concepts Nodes (Middle Orbit - Interests) */}
                     {metrics.ontology?.concepts?.map((c: any, i: number, arr: any[]) => {
-                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
-                        const r = 65;
-                        const x = 100 + Math.cos(angle) * r;
-                        const y = 100 + Math.sin(angle) * r;
-                        return (
-                          <g key={`concept-${c.id}`} 
-                             className="group cursor-pointer"
-                             onMouseEnter={() => setActiveNode(c)}
-                             onMouseLeave={() => setActiveNode(null)}
-                          >
-                             <motion.circle 
-                                cx={x} cy={y} r="6" 
-                                fill="#f59e0b"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                whileHover={{ scale: 1.3, fill: "#d97706" }}
-                                transition={{ type: "spring", stiffness: 300 }}
-                             />
-                          </g>
-                        )
+                      const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                      const r = 65;
+                      const x = 100 + Math.cos(angle) * r;
+                      const y = 100 + Math.sin(angle) * r;
+                      return (
+                        <g key={`concept-${c.id}`}
+                          className="group cursor-pointer"
+                          onMouseEnter={() => setActiveNode(c)}
+                          onMouseLeave={() => setActiveNode(null)}
+                        >
+                          <motion.circle
+                            cx={x} cy={y} r="6"
+                            fill="#f59e0b"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.3, fill: "#d97706" }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                          />
+                        </g>
+                      )
                     })}
 
                     {/* Works Nodes (Outer Orbit) */}
                     {metrics.ontology?.works?.map((work: any, i: number, arr: any[]) => {
-                        const angle = (i / (arr.length || 1)) * Math.PI * 2;
-                        const r = 85;
-                        const x = 100 + Math.cos(angle) * r;
-                        const y = 100 + Math.sin(angle) * r;
-                        return (
-                          <g key={`work-${work.id || i}`} 
-                             className="group cursor-pointer"
-                             onMouseEnter={() => setActiveNode({ ...work, index: i, totalInOrbit: arr.length })}
-                             onMouseLeave={() => setActiveNode(null)}
-                          >
-                             <motion.circle 
-                                cx={x} cy={y} r="5" 
-                                fill={work.subtype === 'PROYECTO' ? "#6366f1" : (i % 2 === 0 ? "#10b981" : "#059669")}
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                whileHover={{ scale: 1.5, fill: "#a855f7" }}
-                                transition={{ type: "spring", stiffness: 400 }}
-                             />
-                          </g>
-                        )
+                      const angle = (i / (arr.length || 1)) * Math.PI * 2;
+                      const r = 85;
+                      const x = 100 + Math.cos(angle) * r;
+                      const y = 100 + Math.sin(angle) * r;
+                      return (
+                        <g key={`work-${work.id || i}`}
+                          className="group cursor-pointer"
+                          onMouseEnter={() => setActiveNode({ ...work, index: i, totalInOrbit: arr.length })}
+                          onMouseLeave={() => setActiveNode(null)}
+                        >
+                          <motion.circle
+                            cx={x} cy={y} r="5"
+                            fill={work.subtype === 'PROYECTO' ? "#6366f1" : (i % 2 === 0 ? "#10b981" : "#059669")}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.5, fill: "#a855f7" }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          />
+                        </g>
+                      )
                     })}
 
                     {/* Central Entity (Principal Researcher) */}
                     {metrics.ontology?.persons?.filter((p: any) => p.isPrincipal).map((p: any) => (
-                      <g key={p.id} 
-                         className="group cursor-pointer"
-                         onMouseEnter={() => setActiveNode(p)}
-                         onMouseLeave={() => setActiveNode(null)}
+                      <g key={p.id}
+                        className="group cursor-pointer"
+                        onMouseEnter={() => setActiveNode(p)}
+                        onMouseLeave={() => setActiveNode(null)}
                       >
-                         <motion.circle 
-                           cx="100" cy="100" r="14" 
-                           fill="url(#nodeGradient)"
-                           filter="url(#glow)"
-                           initial={{ scale: 0 }}
-                           animate={{ scale: [1, 1.05, 1] }}
-                           transition={{ duration: 3, repeat: Infinity }}
-                         />
-                         <text x="100" y="100" textAnchor="middle" className="text-[4px] font-black fill-white uppercase tracking-widest pointer-events-none">
-                            {(p.name || user.fullName || "").split(' ')[0]}
-                         </text>
+                        <motion.circle
+                          cx="100" cy="100" r="14"
+                          fill="url(#nodeGradient)"
+                          filter="url(#glow)"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        />
+                        <text x="100" y="100" textAnchor="middle" className="text-[4px] font-black fill-white uppercase tracking-widest pointer-events-none">
+                          {(p.name || user.fullName || "").split(' ')[0]}
+                        </text>
                       </g>
                     ))}
                   </svg>
@@ -565,7 +611,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                   {/* Dynamic Tooltip Simulation (using SVG <title> for simplicity or custom overlay if needed) */}
                   <div className="absolute top-4 right-6">
                     <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 animate-pulse border border-emerald-100">
-                       <Activity className="h-4 w-4" />
+                      <Activity className="h-4 w-4" />
                     </div>
                   </div>
 
@@ -586,10 +632,10 @@ export default function DashboardContent({ user }: DashboardContentProps) {
 
                   {loadingMetrics && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
-                       <div className="flex flex-col items-center gap-3">
-                          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Sincronizando ORCID...</span>
-                       </div>
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Sincronizando ORCID...</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -610,99 +656,118 @@ export default function DashboardContent({ user }: DashboardContentProps) {
 
             {/* NEW: PRODUCTION TRENDS ROW */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 pb-12">
-               {/* Production by Type Chart */}
-               <motion.div 
-                 variants={itemVariants}
-                 className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col"
-               >
-                 <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
-                    <h2 className="font-serif text-slate-800 flex items-center gap-2 text-xl">
-                      <BarChart3 className="h-5 w-5 text-emerald-500/70" />
-                      Producción Académica
-                    </h2>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100 px-2 py-1 rounded-lg bg-white">Últimos 5 años</span>
-                 </div>
-                 <div className="p-8 h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <ReBarChart data={metrics.productionTrend}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis 
-                            dataKey="year" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
-                            dy={10}
-                          />
-                          <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                          />
-                          <Tooltip 
-                            cursor={{ fill: '#f8fafc' }}
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                          />
-                          <Legend 
-                            verticalAlign="top" 
-                            align="right" 
-                            iconType="circle" 
-                            wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', paddingBottom: '20px' }}
-                          />
-                          <Bar dataKey="articles" name="Artículos" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
-                          <Bar dataKey="chapters" name="Capítulos" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
-                          <Bar dataKey="others" name="Otros" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
-                       </ReBarChart>
-                    </ResponsiveContainer>
-                 </div>
-               </motion.div>
+              {/* Production by Type Chart */}
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col"
+              >
+                <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+                  <h2 className="font-serif text-slate-800 flex items-center gap-2 text-xl">
+                    <BarChart3 className="h-5 w-5 text-emerald-500/70" />
+                    Producción Académica
+                  </h2>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100 px-2 py-1 rounded-lg bg-white">Últimos 5 años</span>
+                </div>
+                <div className="p-8 h-[350px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ReBarChart data={metrics.productionTrend}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="year"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="right"
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', paddingBottom: '20px' }}
+                      />
+                      <Bar dataKey="articles" name="Artículos" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
+                      <Bar dataKey="chapters" name="Capítulos" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
+                      <Bar dataKey="others" name="Otros" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} stackId="a" />
+                    </ReBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
 
-               {/* Projects Trend Chart */}
-               <motion.div 
-                 variants={itemVariants}
-                 className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col"
-               >
-                 <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
-                    <h2 className="font-serif text-slate-800 flex items-center gap-2 text-xl">
-                      <ClipboardList className="h-5 w-5 text-sky-500/70" />
-                      Proyectos Ejecutados
-                    </h2>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100 px-2 py-1 rounded-lg bg-white">Crecimiento Anual</span>
-                 </div>
-                 <div className="p-8 h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <ReBarChart data={metrics.projectsTrend}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis 
-                            dataKey="year" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
-                            dy={10}
-                          />
-                          <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                          />
-                          <Tooltip 
-                            cursor={{ fill: '#f8fafc' }}
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                          />
-                          <Bar dataKey="total" name="Proyectos" fill="#6366f1" radius={[8, 8, 4, 4]} barSize={32}>
-                             <motion.div />
-                          </Bar>
-                       </ReBarChart>
-                    </ResponsiveContainer>
-                 </div>
-               </motion.div>
+              {/* Projects Trend Chart */}
+              <motion.div
+                variants={itemVariants}
+                className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col"
+              >
+                <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+                  <h2 className="font-serif text-slate-800 flex items-center gap-2 text-xl">
+                    <ClipboardList className="h-5 w-5 text-sky-500/70" />
+                    Proyectos Ejecutados
+                  </h2>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100 px-2 py-1 rounded-lg bg-white">Crecimiento Anual</span>
+                </div>
+                <div className="p-8 h-[350px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ReBarChart data={metrics.projectsTrend}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="year"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                      />
+                      <Bar dataKey="total" name="Proyectos" fill="#6366f1" radius={[8, 8, 4, 4]} barSize={32}>
+                        <motion.div />
+                      </Bar>
+                    </ReBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
             </div>
+
+            {/* WORD CLOUD ROW */}
+            <motion.div
+              variants={itemVariants}
+              className="bg-white rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden flex flex-col mb-12"
+            >
+              <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20 flex items-center justify-between">
+                <h2 className="font-serif text-slate-800 flex items-center gap-2 text-xl">
+                  <Hash className="h-5 w-5 text-indigo-500/70" />
+                  Nube de Palabras Clave
+                </h2>
+                <div className="flex items-center gap-3">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100 px-2 py-1 rounded-lg bg-white">Temáticas más frecuentes</span>
+                </div>
+              </div>
+              <div className="p-12 min-h-[300px] w-full flex items-center justify-center bg-gradient-to-b from-white to-slate-50/30">
+                <KeywordCloud keywords={metrics.keywordsCloud} />
+              </div>
+            </motion.div>
           </div>
 
           {/* Right Column - Sidebar style */}
           <div className="space-y-6">
             <div className="bg-primary rounded-[2rem] p-8 text-white shadow-xl shadow-emerald-200/50 relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-xl font-bold font-outfit mb-2 text-accent">Acceso Rápido</h3>
+                <h3 className="text-xl font-bold font-outfit mb-2 text-accent">Menú Principal</h3>
                 <p className="text-emerald-50 text-sm mb-8 leading-relaxed opacity-90">Inicie nuevas solicitudes o acceda a su base de conocimientos.</p>
 
                 <div className="space-y-3">

@@ -96,7 +96,8 @@ export async function fetchResearcherMetrics() {
       orcid: { works: 0, education: 0, employments: 0 },
       ontology: null as any,
       productionTrend: [] as any[],
-      projectsTrend: [] as any[]
+      projectsTrend: [] as any[],
+      keywordsCloud: [] as any[]
     };
 
     // Initialize trends for last 5 years
@@ -244,13 +245,41 @@ export async function fetchResearcherMetrics() {
           });
        }
 
-       if (years.includes(year)) {
+        if (years.includes(year)) {
           const trendIdx = result.projectsTrend.findIndex(t => t.year === year);
           if (trendIdx !== -1) {
              result.projectsTrend[trendIdx].total++;
           }
        }
     });
+
+    // 1.7. Aggregate Keywords for Word Cloud
+    const allItemsForKeywords = await AcademicItem.find({
+       users: session.user.id,
+       keywords: { $exists: true, $ne: [] }
+    }).select('keywords type subtype').lean();
+
+    const keywordCounts: Record<string, { count: number, types: Set<string> }> = {};
+    allItemsForKeywords.forEach((item: any) => {
+       (item.keywords || []).forEach((kw: string) => {
+          const normalized = kw.trim();
+          if (!normalized) return;
+          if (!keywordCounts[normalized]) {
+             keywordCounts[normalized] = { count: 0, types: new Set() };
+          }
+          keywordCounts[normalized].count++;
+          keywordCounts[normalized].types.add(item.subtype || item.type);
+       });
+    });
+
+    result.keywordsCloud = Object.entries(keywordCounts)
+       .map(([text, data]) => ({
+          text,
+          value: data.count,
+          categories: Array.from(data.types)
+       }))
+       .sort((a, b) => b.value - a.value)
+       .slice(0, 40); // Top 40 keywords for the cloud
 
     // FINAL RE-GENERATION OF RELATIONS with ALL sources
     result.ontology.relations = []; // Clear and rebuild
