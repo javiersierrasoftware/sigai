@@ -1,6 +1,6 @@
 import mongoose, { Schema, model, models, Document } from 'mongoose';
 
-export type UserRole = 'DOCENTE' | 'ADMIN' | 'ADMINDIUS' | 'ADMINGESTION' | 'ADMINCIARP' | 'ADMINVICE';
+export type UserRole = 'DOCENTE' | 'ADMIN' | 'ADMINDIUS' | 'ADMINGESTION' | 'ADMINCIARP' | 'ADMINVICE' | 'vicerrectoria';
 
 export interface IUser extends Document {
   fullName: string;
@@ -66,7 +66,7 @@ const UserSchema = new Schema<IUser>({
   password: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ['DOCENTE', 'ADMIN', 'ADMINDIUS', 'ADMINGESTION', 'ADMINCIARP', 'ADMINVICE'],
+    enum: ['DOCENTE', 'ADMIN', 'ADMINDIUS', 'ADMINGESTION', 'ADMINCIARP', 'ADMINVICE', 'vicerrectoria'],
     default: 'DOCENTE' 
   },
   profile: { type: ProfileSchema, default: {} }

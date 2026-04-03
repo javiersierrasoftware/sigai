@@ -18,7 +18,7 @@ import {
   LogOut,
   ClipboardList,
   User as UserIcon,
-  UserPlus, Mail, Lock, AlertCircle, ArrowLeft,
+  UserPlus, Mail, Lock, AlertCircle, ArrowLeft, Calendar,
   Settings2,
   Building2,
   GraduationCap as GradIcon,
@@ -27,7 +27,9 @@ import {
   ExternalLink,
   Activity,
   CheckCircle2,
-  Hash
+  Hash,
+  PieChart as PieIcon,
+  FileCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,11 +45,17 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
+import { getCurrentWorkPlan } from "@/lib/actions/plan-actions";
 
 interface DashboardContentProps {
   user: {
+    _id?: string;
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -155,6 +163,7 @@ const KeywordCloud = ({ keywords }: { keywords: any[] }) => {
 export default function DashboardContent({ user }: DashboardContentProps) {
   const [mounted, setMounted] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [activeNode, setActiveNode] = useState<any>(null);
   const [metrics, setMetrics] = useState<any>({
     scholar: { citations: "---", hIndex: "--", i10Index: "--", lastUpdate: new Date().toISOString() as any },
@@ -183,17 +192,44 @@ export default function DashboardContent({ user }: DashboardContentProps) {
   useEffect(() => {
     setMounted(true);
 
-    async function loadMetrics() {
-      const res = await fetchResearcherMetrics();
-      if (res.success && res.data) {
-        setMetrics(res.data);
-        console.log("📈 DATOS PARA EL DIAGRAMA ONTOLÓGICO:", res.data.ontology);
+    async function loadData() {
+      const userId = user._id || user.id || "";
+      console.log("🔍 DASHBOARD LOAD DATA - UserID:", userId);
+      
+      const [resMetrics, resPlan] = await Promise.all([
+        fetchResearcherMetrics(),
+        userId ? getCurrentWorkPlan(userId) : Promise.resolve({ success: false, data: null })
+      ]);
+
+      if (resMetrics && resMetrics.success && resMetrics.data) {
+        setMetrics(resMetrics.data);
+        console.log("📈 DATOS PARA EL DIAGRAMA ONTOLÓGICO:", (resMetrics.data as any).ontology);
       }
+      
+      console.log("📝 PLAN ACTUAL RESULT:", resPlan);
+      if (resPlan && resPlan.success && resPlan.data) {
+        console.log("✅ PLAN ACTUAL DATA:", resPlan.data);
+        setCurrentPlan(resPlan.data);
+      }
+
       setLoadingMetrics(false);
     }
 
-    loadMetrics();
-  }, []);
+    loadData();
+  }, [user]);
+
+  const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#6366f1"];
+
+  const getPlanPieData = () => {
+    if (!currentPlan || !currentPlan.activities) return [];
+    const categories: Record<string, number> = {};
+    currentPlan.activities.forEach((act: any) => {
+      categories[act.type] = (categories[act.type] || 0) + act.weeklyHours;
+    });
+    return Object.entries(categories).map(([name, value]) => ({ name, value }));
+  };
+
+  const pieData = getPlanPieData();
 
   const statusMap: Record<string, { label: string, color: string }> = {
     'DRAFT': { label: 'Borrador', color: 'bg-slate-50 text-slate-500 border-slate-100' },
@@ -230,7 +266,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                 <Settings className="h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/dashboard/convocatorias">
+            <Link href="/dashboard/plan-trabajo">
               <Button className="h-11 px-6 bg-primary hover:bg-primary/95 text-white shadow-lg shadow-emerald-200/50 transition-all duration-200 font-bold uppercase tracking-widest text-[11px] rounded-2xl">
                 <Plus className="mr-2 h-4 w-4" /> Nuevo Proyecto
               </Button>
@@ -803,12 +839,12 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                     </button>
                   </Link>
 
-                  <Link href="/dashboard/convocatorias">
+                  <Link href="/dashboard/plan-trabajo">
                     <button className="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all rounded-2xl p-4 text-xs font-bold uppercase tracking-widest">
                       <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
                         <Plus className="h-4 w-4" />
                       </div>
-                      Nueva Postulación
+                      Plan de Trabajo
                     </button>
                   </Link>
 
@@ -827,14 +863,14 @@ export default function DashboardContent({ user }: DashboardContentProps) {
             </div>
 
             {/* CIARP ADMIN ONLY: Committee Management */}
-            {user.role === 'ADMINCIARP' && (
+            {(user.role === 'ADMINCIARP' || user.role === 'vicerrectoria') && (
               <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200/50 relative overflow-hidden group">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
                       <ClipboardList className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-serif">Gestión CIARP</h3>
+                    <h3 className="text-lg font-serif">Gestión y configuración</h3>
                   </div>
 
                   <div className="space-y-3">
@@ -842,11 +878,45 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                       <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
                         <div className="flex items-center gap-3">
                           <Users className="h-4 w-4 text-emerald-400" />
-                          Portal Administrativo CIARP
+                          Portal CIARP
                         </div>
                         <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
                       </button>
                     </Link>
+
+                    {user.role === 'vicerrectoria' && (
+                      <>
+                        <Link href="/dashboard/admin/academic-portal">
+                          <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
+                            <div className="flex items-center gap-3">
+                              <GradIcon className="h-4 w-4 text-sky-400" />
+                              Portal Academia
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                          </button>
+                        </Link>
+
+                        <Link href="/dashboard/admin/review-workplans">
+                          <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
+                            <div className="flex items-center gap-3">
+                              <FileCheck className="h-4 w-4 text-emerald-400" />
+                              Revisión Planes de Trabajo
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                          </button>
+                        </Link>
+
+                        <Link href="/dashboard/admin/academic-periods">
+                          <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="h-4 w-4 text-amber-400" />
+                              Gestión de Periodos
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                          </button>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
                 {/* Background art */}
@@ -941,6 +1011,103 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                 ))}
               </div>
             </div>
+
+            {currentPlan ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                      <Activity className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-800 font-outfit text-lg">Dedicación Semanal</h3>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                    Periodo: {currentPlan.semester}
+                  </span>
+                </div>
+
+                <div className="relative flex items-center justify-center py-4">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={8}
+                        dataKey="value"
+                        stroke="none"
+                        cornerRadius={6}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: any) => {
+                          const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
+                          const percentage = total > 0 ? ((Number(value) / total) * 100).toFixed(1) : "0";
+                          return [`${value}h (${percentage}%)`, 'Dedicación'];
+                        }}
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
+                        itemStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute flex flex-col items-center pointer-events-none">
+                    <p className="text-xl font-serif text-slate-800 font-bold leading-none">
+                       {pieData.reduce((acc, curr) => acc + curr.value, 0)}h
+                    </p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Total</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {(() => {
+                    const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
+                    return pieData.map((entry, idx) => {
+                      const percentage = ((entry.value / total) * 100).toFixed(0);
+                      return (
+                        <div key={entry.name} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{entry.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">{entry.value}h</span>
+                            <span className="text-[10px] font-serif text-primary font-bold">{percentage}%</span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </motion.div>
+            ) : (
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-slate-50/50 rounded-[2rem] border border-slate-100 p-8 text-center flex flex-col items-center gap-4 border-dashed"
+                >
+                    <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-300">
+                        <PieIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sin Plan Vigente</p>
+                        <p className="text-[9px] text-slate-300 mt-1 italic uppercase font-medium leading-relaxed">Inicie su plan semestral para ver el gráfico de dedicaciones aquí</p>
+                    </div>
+                    <Link href="/dashboard/plan-trabajo" className="w-full">
+                        <Button variant="outline" className="w-full h-10 rounded-xl border-slate-200 text-slate-500 font-bold uppercase tracking-widest text-[9px] hover:bg-white hover:text-primary transition-all">
+                            Registrar Plan
+                        </Button>
+                    </Link>
+                </motion.div>
+            )}
           </div>
         </div>
       </div>
