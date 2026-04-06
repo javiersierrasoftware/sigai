@@ -76,6 +76,7 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
       setDate(initialItem.date ? new Date(initialItem.initialDate || initialItem.date).toISOString().split('T')[0] : '')
       setTotalAuthors(initialItem.totalAuthors || 1)
       setMetadata(initialItem.metadata || {})
+      setIssn(initialItem.metadata?.issn || '')
       setAuthors(initialItem.authors || [])
       
       const type = MERIT_TYPES.find(t => t.label === initialItem.subtype || t.type === initialItem.type)
@@ -206,6 +207,19 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
        return;
     }
 
+    if (!researchLine) {
+       alert('Debe seleccionar la Línea de Investigación Institucional.');
+       setLoading(false);
+       return;
+    }
+
+    const kwArray = keywords.split(',').map(s => s.trim()).filter(Boolean);
+    if (kwArray.length < 5) {
+       alert('Debe especificar por lo menos 5 palabras clave separadas por comas.');
+       setLoading(false);
+       return;
+    }
+
     const data = {
       type: selectedType.type,
       subtype: selectedType.label,
@@ -215,8 +229,8 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
       radicationDate: new Date().toISOString().split('T')[0],
       totalAuthors: isIndividualMerit ? 1 : Math.max(totalAuthors, authors.length),
       authors: isIndividualMerit ? [{ userId: user.id || user._id, name: user.fullName, type: 'INTERNAL' }] : authors,
-      researchLine: (selectedType.id !== 'TI' && selectedType.id !== 'CD') ? researchLine : undefined,
-      keywords: (selectedType.id !== 'TI' && selectedType.id !== 'CD') ? keywords.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '') : [],
+      researchLine: researchLine,
+      keywords: keywords.split(',').map(s => s.trim()).filter(s => s !== ''),
       metadata
     }
 
@@ -235,7 +249,7 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
   }
 
   const handleMetadataChange = (key: string, val: any) => {
-    setMetadata(prev => ({ ...prev, [key]: val }))
+    setMetadata((prev: any) => ({ ...prev, [key]: val }))
   }
 
   if (!isOpen) return null
@@ -564,6 +578,48 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
                     </div>
                    )}
 
+                   {/* INSTITUTIONAL LINE & KEYWORDS */}
+                   <div className="md:col-span-2 pt-8 border-t border-slate-50 space-y-8">
+                     <div>
+                        <h4 className="flex items-center gap-2 text-xs font-serif text-slate-800 italic mb-1"><Target className="h-4 w-4 text-primary" /> Clasificación y Temáticas</h4>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">VINCULACIÓN INSTITUCIONAL</p>
+                     </div>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Línea de Investigación Institucional</label>
+                           <select 
+                              value={researchLine} 
+                              onChange={e => setResearchLine(e.target.value)}
+                              className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner appearance-none transition-all hover:bg-slate-100"
+                              required
+                           >
+                              <option value="">-- Seleccionar Línea --</option>
+                              {allResearchLines.map(l => (
+                                 <option key={l._id} value={l._id}>{l.name}</option>
+                              ))}
+                           </select>
+                        </div>
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center justify-between">
+                              Palabras Clave (mínimo 5)
+                              <span className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">Separadas por coma</span>
+                           </label>
+                           <div className="relative">
+                              <Hash className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                              <input 
+                                 type="text" 
+                                 value={keywords} 
+                                 onChange={e => setKeywords(e.target.value)}
+                                 placeholder="Ej: inteligencia artificial, docencia, algoritmos, IA, desarrollo..."
+                                 className="w-full pl-14 pr-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner transition-all hover:bg-slate-100 placeholder:text-slate-300 italic" 
+                                 required
+                              />
+                           </div>
+                        </div>
+                     </div>
+                   </div>
+
                    {/* TOTAL AUTHORS (Most Production Types) */}
                    {selectedType.type === 'PRODUCCION' && (
                      <div className="space-y-3">
@@ -585,49 +641,7 @@ export default function MeritRegistrationModal({ isOpen, onClose, user, initialI
                            )}
                         </div>
                         
-                        {/* INSTITUTIONAL LINE & KEYWORDS (Exclude TI and CD) */}
-                        {selectedType.id !== 'TI' && selectedType.id !== 'CD' && (
-                           <div className="md:col-span-2 pt-8 border-t border-slate-50 space-y-8">
-                             <div>
-                                <h4 className="flex items-center gap-2 text-xs font-serif text-slate-800 italic mb-1"><Target className="h-4 w-4 text-primary" /> Clasificación y Temáticas</h4>
-                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">VINCULACIÓN INSTITUCIONAL</p>
-                             </div>
-                             
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3">
-                                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Línea de Investigación Institucional</label>
-                                   <select 
-                                      value={researchLine} 
-                                      onChange={e => setResearchLine(e.target.value)}
-                                      className="w-full px-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner appearance-none transition-all hover:bg-slate-100"
-                                      required
-                                   >
-                                      <option value="">-- Seleccionar Línea --</option>
-                                      {allResearchLines.map(l => (
-                                         <option key={l._id} value={l._id}>{l.name}</option>
-                                      ))}
-                                   </select>
-                                </div>
-                                <div className="space-y-3">
-                                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center justify-between">
-                                      Palabras Clave (máx. 5)
-                                      <span className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">Separadas por coma</span>
-                                   </label>
-                                   <div className="relative">
-                                      <Hash className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                      <input 
-                                         type="text" 
-                                         value={keywords} 
-                                         onChange={e => setKeywords(e.target.value)}
-                                         placeholder="Ej: inteligencia artificial, docencia, algoritmos..."
-                                         className="w-full pl-14 pr-8 py-5 bg-slate-50 border-transparent rounded-[1.5rem] outline-none text-xs font-semibold shadow-inner transition-all hover:bg-slate-100 placeholder:text-slate-300 italic" 
-                                         required
-                                      />
-                                   </div>
-                                </div>
-                             </div>
-                           </div>
-                        )}
+
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                            <div className="space-y-4">

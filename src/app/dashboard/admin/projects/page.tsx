@@ -13,7 +13,7 @@ export default async function AdminProjectsPage() {
 
   return (
     <AdminProjectsClient 
-      initialProjects={res.success ? res.data : []} 
+      initialProjects={res.success ? (res.data || []) : []} 
     />
   );
 }

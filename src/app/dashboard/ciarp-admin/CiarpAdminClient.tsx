@@ -9,7 +9,7 @@ import {
   Hash, Save, ChevronRight, FileBadge, Check, Trash2,
   Settings, LayoutDashboard, Download, BarChart3,
   CheckCircle2, AlertTriangle, Layers, ShieldCheck,
-  TrendingUp, Zap, Award, Flame, LogOut
+  TrendingUp, Zap, Award, Flame, LogOut, Upload
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -17,7 +17,8 @@ import Link from 'next/link'
 import { logoutAction } from '@/lib/actions/auth-actions'
 import DashboardHeader from '@/components/dashboard/DashboardHeader'
 // Import server actions (Need to ensure these exist)
-import { createActa, updateActa, evaluateSubmission, bulkEvaluateSubmissions } from "@/lib/actions/ciarp-actions"
+import { createActa, updateActa, evaluateSubmission, bulkEvaluateSubmissions, getPendingJournals, validateJournalInActa } from "@/lib/actions/ciarp-actions"
+import { uploadFile } from '@/lib/actions/storage-actions'
 import { calculateCumulativeTitlePoints } from "@/lib/utils/decreto-1279"
 
 interface Props {
@@ -49,12 +50,51 @@ export default function CiarpAdminClient({ data, user }: Props) {
   const [showEvaluationModal, setShowEvaluationModal] = useState<any>(null)
   const [editingActa, setEditingActa] = useState<any>(null)
   const [showHandledDetails, setShowHandledDetails] = useState<any>(null)
+  const [pendingJournals, setPendingJournals] = useState<any[] | null>(null)
   
   // New Acta state
   const [newActa, setNewActa] = useState({ number: '', date: '', agenda: '' })
 
   // Evaluation states
   const [evaluation, setEvaluation] = useState({ status: 'APROBADO', reason: '', actaId: '', points: 0 })
+
+  const [journalUploading, setJournalUploading] = useState<Record<string, boolean>>({})
+  const [journalEvidence, setJournalEvidence] = useState<Record<string, string>>({})
+
+  const handleJournalFileUpload = async (jId: string, file: File) => {
+    setJournalUploading(prev => ({ ...prev, [jId]: true }))
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await uploadFile(formData)
+      if (res.success && res.url) {
+        setJournalEvidence(prev => ({ ...prev, [jId]: res.url }))
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setJournalUploading(prev => ({ ...prev, [jId]: false }))
+    }
+  }
+
+  const loadPendingJournals = async () => {
+    const ids = data.pendingSubmissions.map(s => s._id);
+    const actaId = editingActa?._id;
+    const res = await getPendingJournals(ids, actaId);
+    if(res.success) setPendingJournals(res.data);
+  }
+
+  const handleValidateJournal = async (jId: string, category: string) => {
+    if (!editingActa) return;
+    const evidenceUrl = journalEvidence[jId];
+    if (!evidenceUrl) return alert("Debe adjuntar primero la evidencia fotográfica de la indexación para proceder.")
+    const res = await validateJournalInActa(jId, editingActa._id, category, evidenceUrl);
+    if(res.success) {
+        setPendingJournals(prev => prev?.map(j => j._id === jId ? res.data : j) || null);
+    } else {
+        alert(res.error);
+    }
+  }
 
   const filteredSubmissions = useMemo(() => {
     return data.pendingSubmissions.filter(s => {
@@ -368,7 +408,8 @@ export default function CiarpAdminClient({ data, user }: Props) {
                                 <th className="p-4 w-32">ISSN</th>
                                 <th className="p-4 text-center w-12">Nº</th>
                                 <th className="p-4 text-center w-12">Vol</th>
-                                <th className="p-4 text-center w-24">Categoría</th>
+                                <th className="p-4 text-center w-24">Cat. Solicitada</th>
+                                <th className="p-4 text-center w-24">Cat. CIARP</th>
                                 <th className="p-4 text-center w-20">Puntos</th>
                                 <th className="p-4 text-center w-16">Autores</th>
                                 <th className="p-4 text-right w-24">Acción</th>
@@ -419,9 +460,21 @@ export default function CiarpAdminClient({ data, user }: Props) {
                                   <td className="p-4 text-center text-[10px] text-slate-500">{sub.metadata?.issue || '---'}</td>
                                   <td className="p-4 text-center text-[10px] text-slate-500">{sub.metadata?.volume || '---'}</td>
                                   <td className="p-4 text-center">
-                                     <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-tighter border border-slate-200">
+                                     <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter border bg-slate-100 text-slate-500 border-slate-200">
                                         {sub.metadata?.journalCategory || '---'}
                                      </span>
+                                  </td>
+                                  <td className="p-4 text-center">
+                                     {sub.validatedCategory ? (
+                                        <div className="flex flex-col items-center">
+                                           <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter border bg-emerald-500 text-white border-emerald-600 shadow-sm">
+                                              {sub.validatedCategory}
+                                           </span>
+                                           <div className="text-[6.5px] text-emerald-600 font-bold uppercase mt-1 tracking-widest text-center">Homologada</div>
+                                        </div>
+                                     ) : (
+                                        <span className="text-[9px] text-slate-300 italic font-medium">En espera</span>
+                                     )}
                                   </td>
                                   <td className="p-4 text-center">
                                      <div className="text-[11px] font-black text-emerald-600">{sub.points || '0'}</div>
@@ -911,6 +964,22 @@ export default function CiarpAdminClient({ data, user }: Props) {
                     </section>
                   )}
 
+                  {showEvaluationModal !== 'BULK' && showEvaluationModal.validatedCategory && (
+                     <section className="space-y-4 animate-in slide-in-from-top-10">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Homologación de Revista Acoplada</label>
+                        <div className="flex items-center gap-4 p-5 border border-emerald-100 bg-emerald-50/50 rounded-2xl">
+                           <div className="h-10 w-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black text-xs shadow-md">
+                              {showEvaluationModal.validatedCategory}
+                           </div>
+                           <div>
+                              <p className="text-[11px] font-bold text-emerald-800">Categoría Oficial Externa Validada</p>
+                              <p className="text-[9px] text-emerald-600/70 font-black uppercase tracking-widest">Homologación CIARP Vigente (Sesión Actual)</p>
+                           </div>
+                           <CheckCircle2 className="h-6 w-6 text-emerald-200 ml-auto" />
+                        </div>
+                     </section>
+                  )}
+
                   {showEvaluationModal !== 'BULK' && evaluation.status === 'APROBADO' && (
                     <section className="space-y-4 animate-in slide-in-from-top-10">
                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ajuste de Puntos de Mérito (Opcional)</label>
@@ -951,43 +1020,132 @@ export default function CiarpAdminClient({ data, user }: Props) {
       {editingActa && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditingActa(null)} />
-           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-xl rounded-[3rem] shadow-3xl overflow-hidden relative z-10 p-10 space-y-8">
-              <div className="flex items-center justify-between border-b border-slate-50 pb-6">
-                 <h3 className="text-3xl font-serif text-slate-800 italic">Detalles de Sesión</h3>
-                 <span className={cn("px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border", editingActa.status === 'OPEN' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200")}>
-                    {editingActa.status === 'OPEN' ? 'Abierta' : 'Cerrada'}
-                 </span>
+           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-5xl rounded-[3rem] shadow-3xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]">
+              
+              <div className="p-10 pb-6 border-b border-slate-50 shrink-0">
+                 <div className="flex items-center justify-between">
+                    <h3 className="text-3xl font-serif text-slate-800 italic">Detalles de Sesión</h3>
+                    <span className={cn("px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border", editingActa.status === 'OPEN' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200")}>
+                       {editingActa.status === 'OPEN' ? 'Abierta' : 'Cerrada'}
+                    </span>
+                 </div>
               </div>
               
-              <div className="space-y-6">
-                 <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Número de Acta</label>
-                    <input 
-                      type="text" 
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none text-xs font-bold text-slate-700 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner"
-                      value={editingActa.number}
-                      onChange={e => setEditingActa({...editingActa, number: e.target.value})}
-                    />
+              <div className="p-10 grow overflow-y-auto space-y-8">
+                 <div className="grid grid-cols-2 gap-6">
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Número de Acta</label>
+                       <input 
+                         type="text" 
+                         className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none text-xs font-bold text-slate-700 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner"
+                         value={editingActa.number}
+                         onChange={e => setEditingActa({...editingActa, number: e.target.value})}
+                       />
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Fecha</label>
+                       <input 
+                         type="date" 
+                         className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none text-xs font-bold text-slate-700 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner"
+                         value={editingActa.date ? new Date(editingActa.date).toISOString().split('T')[0] : ''}
+                         onChange={e => setEditingActa({...editingActa, date: e.target.value})}
+                       />
+                    </div>
                  </div>
-                 <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Fecha</label>
-                    <input 
-                      type="date" 
-                      className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none text-xs font-bold text-slate-700 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner"
-                      value={editingActa.date ? new Date(editingActa.date).toISOString().split('T')[0] : ''}
-                      onChange={e => setEditingActa({...editingActa, date: e.target.value})}
-                    />
-                 </div>
+                 
                  <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Agenda y Observaciones generales</label>
                     <textarea 
-                      className="w-full h-40 p-6 rounded-[2rem] bg-slate-50 border-none text-[11px] font-medium text-slate-600 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner resize-none"
+                      className="w-full h-24 p-6 rounded-[2rem] bg-slate-50 border-none text-[11px] font-medium text-slate-600 outline-none focus:ring-2 ring-primary/20 transition-all shadow-inner resize-none"
                       value={editingActa.agenda}
                       onChange={e => setEditingActa({...editingActa, agenda: e.target.value})}
                     />
                  </div>
+
+                 {editingActa.status === 'OPEN' && (
+                    <div className="pt-6 border-t border-slate-50">
+                       <div className="flex items-center justify-between mb-4">
+                          <div>
+                             <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><BookOpen className="h-3 w-3 text-indigo-500" /> Pre-Requisito: Homologación de Revistas</h4>
+                             <p className="text-[9px] text-slate-400 mt-1 italic">Valide la categoría y adjunte evidencia de las revistas del acta.</p>
+                          </div>
+                          <Button onClick={loadPendingJournals} variant="outline" className="h-8 px-6 rounded-xl text-[9px] font-bold uppercase tracking-widest text-indigo-600 border-indigo-100 hover:bg-indigo-50">Listar Revistas</Button>
+                       </div>
+                       
+                       {pendingJournals && (
+                          <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner bg-slate-50/30">
+                             <div className="overflow-x-auto max-h-[30vh] overflow-y-auto w-full">
+                                <table className="w-full min-w-[900px] text-left border-collapse">
+                                   <thead className="bg-slate-50/80 sticky top-0 border-b border-slate-100 z-10">
+                                      <tr className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                         <th className="p-4 w-64">Revista / ISSN</th>
+                                         <th className="p-4 w-64">Evidencia Indexación</th>
+                                         <th className="p-4 text-center">Homologar Categoría (Salarial)</th>
+                                      </tr>
+                                   </thead>
+                                   <tbody className="divide-y divide-slate-100">
+                                      {pendingJournals.map(j => {
+                                         const hasUpload = !!journalEvidence[j._id];
+                                         const isUploading = !!journalUploading[j._id];
+                                         return (
+                                            <tr key={j._id} className="hover:bg-white transition-colors group">
+                                               <td className="p-4">
+                                                  <p className="text-[10px] font-bold text-slate-800 line-clamp-1 max-w-[250px]" title={j.name}>{j.name}</p>
+                                                  <p className="text-[9px] font-mono text-slate-400 mt-1">{j.issn1}</p>
+                                               </td>
+                                               <td className="p-4">
+                                                  <label className={cn(
+                                                    "cursor-pointer flex items-center justify-center gap-2 h-9 px-4 rounded-xl border-2 border-dashed transition-all w-max",
+                                                    hasUpload ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-500"
+                                                  )}>
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*,.pdf" 
+                                                      className="hidden" 
+                                                      onChange={(e) => e.target.files?.[0] && handleJournalFileUpload(j._id, e.target.files[0])}
+                                                    />
+                                                    {isUploading ? (
+                                                       <span className="text-[9px] font-bold uppercase tracking-widest">Cargando...</span>
+                                                    ) : hasUpload ? (
+                                                       <><CheckCircle2 className="h-3 w-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Soporte Adjunto</span></>
+                                                    ) : (
+                                                       <><Upload className="h-3 w-3" /><span className="text-[9px] font-bold uppercase tracking-widest">Subir Imagen</span></>
+                                                    )}
+                                                  </label>
+                                               </td>
+                                               <td className="p-4">
+                                                  <div className={cn(
+                                                    "flex items-center justify-center gap-1.5 opacity-50 pointer-events-none transition-all",
+                                                    hasUpload && "opacity-100 pointer-events-auto"
+                                                  )}>
+                                                     {['A1', 'A2', 'B', 'C', 'NO_INDEXADA'].map(cat => (
+                                                        <button 
+                                                          key={cat}
+                                                          onClick={() => handleValidateJournal(j._id, cat)}
+                                                          className={cn(
+                                                              "h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-tighter border transition-all",
+                                                              j.category === cat ? "bg-emerald-500 text-white border-emerald-600 shadow-md scale-105" : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
+                                                          )}
+                                                        >
+                                                           {cat}
+                                                        </button>
+                                                     ))}
+                                                  </div>
+                                               </td>
+                                            </tr>
+                                         )
+                                      })}
+                                   </tbody>
+                                </table>
+                                {pendingJournals.length === 0 && <p className="text-[10px] text-slate-400 italic text-center py-8">No hay revistas pendientes de validación para puntos salariales.</p>}
+                             </div>
+                          </div>
+                       )}
+                    </div>
+                 )}
               </div>
-              <div className="flex flex-col gap-3 pt-4">
+              
+              <div className="p-10 border-t border-slate-50 shrink-0 bg-slate-50/50 flex flex-col gap-3">
                  <div className="flex items-center gap-3">
                     <Button onClick={() => setEditingActa(null)} variant="ghost" className="h-14 grow rounded-2xl uppercase tracking-widest text-[9px] font-bold text-slate-400">Cancelar</Button>
                     <Button onClick={onUpdateActa} className="h-14 grow rounded-2xl bg-slate-900 text-white uppercase tracking-widest text-[9px] font-bold shadow-xl shadow-slate-200">Guardar Cambios</Button>

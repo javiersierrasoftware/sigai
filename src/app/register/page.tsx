@@ -67,7 +67,6 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400/80 ml-1">
                   Nombre Completo
@@ -99,7 +98,6 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-            </div>
 
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400/80 ml-1">
