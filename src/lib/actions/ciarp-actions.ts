@@ -40,7 +40,11 @@ export async function getCiarpDashboardData() {
     const addressedSubmissions = await AcademicItem.find({ 
       status: { $in: ['APROBADO', 'RECHAZADO', 'APLAZADO'] } 
     })
-      .populate('users', 'fullName email identification profile')
+      .populate({
+        path: 'users',
+        select: 'fullName email identification profile',
+        populate: { path: 'profile.faculty', select: 'name' }
+      })
       .populate('actaId', 'number')
       .sort({ updatedAt: -1 })
       .lean();
@@ -48,6 +52,7 @@ export async function getCiarpDashboardData() {
     // Get all lecturers
     const lecturers = await User.find({ role: 'DOCENTE' })
       .select('fullName email identification profile')
+      .populate('profile.faculty', 'name')
       .sort({ fullName: 1 })
       .lean();
 

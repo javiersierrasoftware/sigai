@@ -11,6 +11,7 @@ import {
   CheckCircle2, AlertTriangle, Layers, ShieldCheck,
   TrendingUp, Zap, Award, Flame, LogOut, Upload
 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from 'next/link'
@@ -176,7 +177,8 @@ export default function CiarpAdminClient({ data, user }: Props) {
     const handled = (data.addressedSubmissions || []).filter(s => {
       const matchYear = analyticsYear === 'ALL' || new Date(s.updatedAt).getFullYear().toString() === analyticsYear;
       const t = s.users?.[0];
-      const matchFaculty = analyticsFaculty === 'ALL' || t?.profile?.faculty === analyticsFaculty;
+      const matchFaculty = analyticsFaculty === 'ALL' || 
+          (t?.profile?.faculty && (t.profile.faculty._id === analyticsFaculty || t.profile.faculty === analyticsFaculty));
       const matchProgram = analyticsProgram === 'ALL' || t?.profile?.program === analyticsProgram;
       return matchYear && matchFaculty && matchProgram;
     });
@@ -205,12 +207,18 @@ export default function CiarpAdminClient({ data, user }: Props) {
       else bonusPoints += (s.points || 0);
     });
 
-    // Content types
+    // Content types and Journals
     const typesMap: Record<string, number> = {};
+    const journalsMap: Record<string, number> = {};
     approved.forEach(s => {
       typesMap[s.subtype] = (typesMap[s.subtype] || 0) + 1;
+      if (s.metadata?.journalName) {
+         const name = s.metadata.journalName.trim();
+         if (name && name !== '---') journalsMap[name] = (journalsMap[name] || 0) + 1;
+      }
     });
-    const topTypes = Object.entries(typesMap).sort((a,b) => b[1] - a[1]).slice(0, 5); // Corrected sort for tuple
+    const topTypes = Object.entries(typesMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+    const topJournals = Object.entries(journalsMap).sort((a,b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count }));
 
     const POINT_VALUE = 23924;
     const economicImpact = (salaryPoints + bonusPoints) * POINT_VALUE;
@@ -223,6 +231,7 @@ export default function CiarpAdminClient({ data, user }: Props) {
       economicImpact,
       topTeachers,
       topTypes,
+      topJournals,
       totalApproved: approved.length
     };
   }, [data.addressedSubmissions, analyticsYear, analyticsFaculty, analyticsProgram]);
@@ -667,15 +676,19 @@ export default function CiarpAdminClient({ data, user }: Props) {
                              <option className="text-slate-900" value="2024">2024</option>
                           </select>
                           <select 
-                            value={analyticsFaculty} 
-                            onChange={e => setAnalyticsFaculty(e.target.value)}
-                            className="h-12 px-6 rounded-2xl bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white outline-none focus:ring-2 ring-emerald-500/50"
-                          >
-                             <option className="text-slate-900" value="ALL">Todas las Facultades</option>
-                             {[...new Set(data.lecturers.map(l => l.profile?.faculty).filter(Boolean))].map(f => (
-                               <option className="text-slate-900" key={f} value={f}>{f}</option>
-                             ))}
-                          </select>
+                             value={analyticsFaculty} 
+                             onChange={e => setAnalyticsFaculty(e.target.value)}
+                             className="h-12 px-6 rounded-2xl bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white outline-none focus:ring-2 ring-emerald-500/50"
+                           >
+                              <option className="text-slate-900" value="ALL">Todas las Facultades</option>
+                              {[...new Map(data.lecturers.map(l => {
+                                 const f = l.profile?.faculty;
+                                 if (!f) return null;
+                                 return [f._id || f, f.name || f];
+                              }).filter(Boolean) as [string, string][]).entries()].map(([id, name]) => (
+                                <option className="text-slate-900" key={id} value={id}>{name}</option>
+                              ))}
+                           </select>
                        </div>
                     </div>
 
@@ -769,8 +782,36 @@ export default function CiarpAdminClient({ data, user }: Props) {
                           </div>
                        </section>
                     </div>
-                 </motion.div>
-               )}
+
+                    <section className="bg-white rounded-[3rem] p-12 border border-slate-50 shadow-sm mt-10">
+                        <h5 className="text-xl font-serif italic text-slate-800 mb-10 flex items-center gap-4">
+                           <BookOpen className="h-6 w-6 text-emerald-500" /> Publicaciones por Revista
+                        </h5>
+                        <div className="h-[400px] w-full">
+                           {analytics.topJournals.length > 0 ? (
+                              <ResponsiveContainer width="100%" height="100%">
+                                 <BarChart data={analytics.topJournals} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f8fafc" />
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={300} tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} axisLine={false} tickLine={false} />
+                                    <Tooltip 
+                                       cursor={{fill: '#f1f5f9'}}
+                                       contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
+                                       itemStyle={{ color: '#10b981', fontWeight: 900 }}
+                                       formatter={(value: any) => [`${value} Aprobaciones`]}
+                                    />
+                                    <Bar dataKey="count" fill="#10b981" radius={[0, 8, 8, 0]} barSize={24} />
+                                 </BarChart>
+                              </ResponsiveContainer>
+                           ) : (
+                              <div className="h-full flex items-center justify-center text-slate-300 italic text-sm">
+                                 No hay datos de revistas asociadas a producciones aprobadas.
+                              </div>
+                           )}
+                        </div>
+                    </section>
+                  </motion.div>
+                )}
 
                {activeTab === 'DOCENTES' && (
                  <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}>

@@ -74,6 +74,9 @@ const UserSchema = new Schema<IUser>({
   timestamps: true,
 });
 
+UserSchema.index({ role: 1 });
+UserSchema.index({ "profile.faculty": 1 });
+
 if (mongoose.models && mongoose.models.User) {
   delete (mongoose.models as any).User;
 }

@@ -59,6 +59,10 @@ export default function AcademicHistoryClient({ history, user }: Props) {
       categoria: history.filter(h => h.type === 'CATEGORIA' && h.status === 'APROBADO').reduce((acc, h) => acc + (h.points || 0), 0)
    }
 
+   const totalPoints = stats.titulos + stats.produccion + stats.experiencia + stats.categoria;
+   const POINT_VALUE_2026 = 23924;
+   const estimatedSalary = totalPoints * POINT_VALUE_2026;
+
    const filteredItems = history.filter(item => {
       if (activeTab === 'Títulos') return item.type === 'TITULO'
       if (activeTab === 'Categoría') return item.type === 'CATEGORIA'
@@ -309,7 +313,17 @@ export default function AcademicHistoryClient({ history, user }: Props) {
                   <div className="mt-12 bg-emerald-50 rounded-[2rem] p-8">
                      <Calculator className="h-8 w-8 text-emerald-600 mb-4" />
                      <h5 className="text-xs font-bold text-emerald-900 uppercase tracking-widest mb-2 italic">Estimador Decreto 1279</h5>
-                     <p className="text-[10px] text-emerald-700/70 leading-relaxed font-medium">Sus puntos actuales equivalen a un ajuste salarial aproximado según el valor del punto vigente.</p>
+                     <p className="text-[10px] text-emerald-700/70 leading-relaxed font-medium mb-4">Sus puntos actuales equivalen a un ajuste salarial aproximado según el valor del punto vigente (2026: $23.924).</p>
+                     
+                     <div className="bg-white/60 rounded-xl p-4 border border-emerald-100/50 flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest flex justify-between items-center">
+                           Fórmula
+                           <span className="bg-emerald-100 px-1.5 py-0.5 rounded-sm">{totalPoints} pts</span>
+                        </span>
+                        <span className="text-2xl font-serif text-emerald-800 italic">
+                           {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estimatedSalary)}
+                        </span>
+                     </div>
                   </div>
                </div>
 

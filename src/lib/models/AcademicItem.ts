@@ -75,6 +75,10 @@ const AcademicItemSchema: Schema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+AcademicItemSchema.index({ users: 1 });
+AcademicItemSchema.index({ type: 1, subtype: 1 });
+AcademicItemSchema.index({ status: 1 });
+
 if (mongoose.models.AcademicItem) {
   delete mongoose.models.AcademicItem;
 }

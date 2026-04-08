@@ -93,6 +93,11 @@ export default function RegisterPage() {
                     type="text" 
                     name="identification"
                     required
+                    pattern="[0-9]*"
+                    onInput={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/[^0-9]/g, '');
+                    }}
                     placeholder="1000000000"
                     className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border-transparent rounded-[1.25rem] focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none text-slate-600 font-medium placeholder:text-slate-300 placeholder:font-normal"
                   />

@@ -48,6 +48,9 @@ const ProjectSchema = new Schema<IProject>({
   timestamps: true,
 });
 
+ProjectSchema.index({ status: 1 });
+ProjectSchema.index({ "teamMembers.email": 1 });
+
 // Avoid re-compiling the model if it already exists
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema);
 
