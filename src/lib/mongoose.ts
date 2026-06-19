@@ -1,5 +1,24 @@
 import mongoose from 'mongoose';
 
+// Pre-register all models to prevent "Schema hasn't been registered" populate errors in Next.js development/production
+import '@/lib/models/Faculty';
+import '@/lib/models/AcademicProgram';
+import '@/lib/models/ResearchLine';
+import '@/lib/models/ResearchGroup';
+import '@/lib/models/User';
+import '@/lib/models/AcademicItem';
+import '@/lib/models/Acta';
+import '@/lib/models/Journal';
+import '@/lib/models/Project';
+import '@/lib/models/ProjectCall';
+import '@/lib/models/ProjectEvaluation';
+import '@/lib/models/AcademicPeriod';
+import '@/lib/models/AcademicActivity';
+import '@/lib/models/Rubric';
+import '@/lib/models/WorkPlan';
+import '@/lib/models/ProjectAct';
+import '@/lib/models/Keyword';
+
 const MONGODB_URI = process.env.MONGODB_URI || '';
 
 if (!MONGODB_URI) {

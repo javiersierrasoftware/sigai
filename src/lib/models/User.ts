@@ -5,7 +5,7 @@ export type UserRole = 'DOCENTE' | 'ADMIN' | 'ADMINDIUS' | 'ADMINGESTION' | 'ADM
 export interface IUser extends Document {
   fullName: string;
   identification: string;
-  email: string;
+  email?: string;
   password: string;
   role: UserRole;
   profile?: {
@@ -62,7 +62,7 @@ const ProfileSchema = new Schema({
 const UserSchema = new Schema<IUser>({
   fullName: { type: String, required: true },
   identification: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   role: { 
     type: String, 

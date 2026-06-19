@@ -101,7 +101,7 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-serif text-slate-800 tracking-tight">Portal Academia UniSucre</h1>
+              <h1 className="text-3xl font-serif text-slate-800 tracking-tight">Crear actividades docentes</h1>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Configuración centralizada de labores y asginaciones</p>
             </div>
           </div>

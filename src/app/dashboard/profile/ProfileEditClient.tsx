@@ -63,7 +63,7 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
   const [programId, setProgramId] = useState(user.profile?.program?._id || user.profile?.program || '')
   const [joiningMonth, setJoiningMonth] = useState(user.profile?.joiningMonth || 'Enero')
   const [joiningYear, setJoiningYear] = useState(user.profile?.joiningYear || '2024')
-  const [contractType, setContractType] = useState(user.profile?.contractType || 'Carrera')
+  const [contractType, setContractType] = useState(user.profile?.contractType || 'PLANTA')
   
   const [selectedODS, setSelectedODS] = useState<string[]>(user.profile?.ods || [])
   const [selectedLines, setSelectedLines] = useState<string[]>(user.profile?.researchLines?.map((l:any) => l._id || l) || [])
@@ -95,7 +95,7 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
       setProgramId(user.profile?.program?._id || user.profile?.program || '')
       setJoiningMonth(user.profile?.joiningMonth || 'Enero')
       setJoiningYear(user.profile?.joiningYear || '2024')
-      setContractType(user.profile?.contractType || 'Carrera')
+      setContractType(user.profile?.contractType || 'PLANTA')
       setSelectedODS(user.profile?.ods || [])
       setSelectedLines(user.profile?.researchLines?.map((l:any) => l._id || l) || [])
       setSelectedGroups(user.profile?.researchGroups?.map((g:any) => g._id || g) || [])
@@ -462,9 +462,9 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
                       <div className="space-y-3">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Tipo de Contrato</label>
                         <select value={contractType} onChange={(e) => setContractType(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-[11px]">
-                           <option value="Carrera">Profesor de Planta</option>
-                           <option value="Catedrático">Profesor Catedrático</option>
-                           <option value="Ocasional">Profesor Ocasional</option>
+                           <option value="PLANTA">Docente de Planta</option>
+                           <option value="CONTRATO">Docente de Contrato</option>
+                           <option value="OCASIONAL">Docente Ocasional</option>
                         </select>
                       </div>
                    </div>

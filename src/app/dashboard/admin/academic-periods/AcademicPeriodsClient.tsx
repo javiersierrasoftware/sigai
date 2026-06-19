@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Settings
+  Settings,
+  Edit2,
+  X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -27,18 +29,68 @@ export default function AcademicPeriodsClient({ initialPeriods, user }: Props) {
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState(false)
   const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editStatus, setEditStatus] = useState<'OPEN' | 'CLOSED'>('OPEN')
+  const [weeksPlanta, setWeeksPlanta] = useState<number>(23)
+  const [weeksOcasionales, setWeeksOcasionales] = useState<number>(23)
+  const [weeksContrato, setWeeksContrato] = useState<number>(18)
 
   const handleAdd = async () => {
     if (!newName) return;
     setLoading(true)
-    const res = await createAcademicPeriod({ name: newName, status: 'OPEN', isCurrent: periods.length === 0 })
-    if (res.success) {
-      setPeriods([res.data, ...periods])
-      setNewName('')
+    if (editingId) {
+      const res = await updateAcademicPeriod(editingId, { 
+        name: newName, 
+        status: editStatus,
+        weeksPlanta,
+        weeksOcasionales,
+        weeksContrato
+      })
+      if (res.success) {
+        setPeriods(periods.map(p => p._id === editingId ? res.data : p))
+        handleCancelEdit()
+      } else {
+        alert("Error: " + res.error)
+      }
     } else {
-      alert("Error: " + res.error)
+      const res = await createAcademicPeriod({ 
+        name: newName, 
+        status: 'OPEN', 
+        isCurrent: periods.length === 0,
+        weeksPlanta,
+        weeksOcasionales,
+        weeksContrato
+      })
+      if (res.success) {
+        setPeriods([res.data, ...periods])
+        setNewName('')
+        setWeeksPlanta(23)
+        setWeeksOcasionales(23)
+        setWeeksContrato(18)
+      } else {
+        alert("Error: " + res.error)
+      }
     }
     setLoading(false)
+  }
+
+  const handleEdit = (period: any) => {
+    setEditingId(period._id)
+    setNewName(period.name)
+    setEditStatus(period.status)
+    setWeeksPlanta(period.weeksPlanta ?? 23)
+    setWeeksOcasionales(period.weeksOcasionales ?? 23)
+    setWeeksContrato(period.weeksContrato ?? 18)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setNewName('')
+    setEditStatus('OPEN')
+    setWeeksPlanta(23)
+    setWeeksOcasionales(23)
+    setWeeksContrato(18)
   }
 
   const toggleStatus = async (period: any) => {
@@ -90,7 +142,21 @@ export default function AcademicPeriodsClient({ initialPeriods, user }: Props) {
         {/* Lado Izquierdo: Formulario */}
         <div className="md:col-span-5 space-y-8">
            <div className="bg-white rounded-[3rem] p-10 border border-slate-50 shadow-sm sticky top-40">
-              <h2 className="text-2xl font-serif text-slate-800 mb-8">Nuevo Periodo</h2>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-serif text-slate-800">
+                  {editingId ? 'Editar Periodo' : 'Nuevo Periodo'}
+                </h2>
+                {editingId && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleCancelEdit}
+                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500"
+                  >
+                    Cancelar <X className="ml-1 h-3 w-3" />
+                  </Button>
+                )}
+              </div>
               <div className="space-y-6">
                  <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificador del Periodo</label>
@@ -101,13 +167,74 @@ export default function AcademicPeriodsClient({ initialPeriods, user }: Props) {
                       onChange={(e) => setNewName(e.target.value)}
                     />
                  </div>
+                 
+                 <div className="space-y-4 border-t border-slate-100 pt-6">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Semanas de Trabajo</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block ml-1">Planta</label>
+                          <input 
+                            type="number"
+                            className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit"
+                            value={weeksPlanta}
+                            onChange={(e) => setWeeksPlanta(parseInt(e.target.value) || 0)}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block ml-1">Ocasionales</label>
+                          <input 
+                            type="number"
+                            className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit"
+                            value={weeksOcasionales}
+                            onChange={(e) => setWeeksOcasionales(parseInt(e.target.value) || 0)}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block ml-1">Contrato</label>
+                          <input 
+                            type="number"
+                            className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit"
+                            value={weeksContrato}
+                            onChange={(e) => setWeeksContrato(parseInt(e.target.value) || 0)}
+                          />
+                       </div>
+                    </div>
+                 </div>
+                 {editingId && (
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado del Periodo</label>
+                       <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => setEditStatus('OPEN')}
+                            className={cn(
+                              "p-4 rounded-2xl border transition-all flex flex-col items-center gap-2",
+                              editStatus === 'OPEN' ? "border-primary bg-primary/5 text-primary font-bold" : "border-slate-100 bg-slate-50 text-slate-400"
+                            )}
+                          >
+                             <CheckCircle2 className="h-5 w-5" />
+                             <span className="text-[10px] font-bold uppercase tracking-widest">Abierto</span>
+                          </button>
+                          <button
+                            onClick={() => setEditStatus('CLOSED')}
+                            className={cn(
+                              "p-4 rounded-2xl border transition-all flex flex-col items-center gap-2",
+                              editStatus === 'CLOSED' ? "border-rose-500 bg-rose-50/50 text-rose-600 font-bold" : "border-slate-100 bg-slate-50 text-slate-400"
+                            )}
+                          >
+                             <XCircle className="h-5 w-5" />
+                             <span className="text-[10px] font-bold uppercase tracking-widest">Cerrado</span>
+                          </button>
+                       </div>
+                    </div>
+                 )}
                  <div className="pt-4">
                     <Button 
                       onClick={handleAdd}
                       disabled={loading || !newName}
                       className="w-full h-16 bg-primary text-white rounded-2xl shadow-xl shadow-emerald-100 font-bold uppercase tracking-widest text-[11px]"
                     >
-                      {loading ? "Creando..." : "Habilitar Periodo"} <Plus className="ml-2 h-4 w-4" />
+                      {loading ? "Procesando..." : (editingId ? "Actualizar Periodo" : "Habilitar Periodo")} 
+                      {editingId ? <Save className="ml-2 h-4 w-4" /> : <Plus className="ml-2 h-4 w-4" />}
                     </Button>
                  </div>
               </div>
@@ -151,6 +278,23 @@ export default function AcademicPeriodsClient({ initialPeriods, user }: Props) {
                              <Clock className="h-3 w-3" /> {new Date(period.createdAt).toLocaleDateString()}
                           </span>
                        </div>
+                        
+                        <div className="flex items-center gap-4 mt-3 bg-slate-50/60 rounded-xl px-4 py-2 w-fit">
+                           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                              Semanas:
+                           </span>
+                           <span className="text-[9px] font-semibold text-slate-600">
+                              Planta: <strong className="text-slate-800 font-bold">{period.weeksPlanta ?? 23}</strong>
+                           </span>
+                           <div className="h-3 w-[1px] bg-slate-200" />
+                           <span className="text-[9px] font-semibold text-slate-600">
+                              Ocasionales: <strong className="text-slate-800 font-bold">{period.weeksOcasionales ?? 23}</strong>
+                           </span>
+                           <div className="h-3 w-[1px] bg-slate-200" />
+                           <span className="text-[9px] font-semibold text-slate-600">
+                              Contrato: <strong className="text-slate-800 font-bold">{period.weeksContrato ?? 18}</strong>
+                           </span>
+                        </div>
                     </div>
                  </div>
 
@@ -165,6 +309,12 @@ export default function AcademicPeriodsClient({ initialPeriods, user }: Props) {
                           Marcar Actual
                         </Button>
                     )}
+                    <button 
+                      onClick={() => handleEdit(period)}
+                      className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+                    >
+                       <Edit2 className="h-4 w-4" />
+                    </button>
                     <button 
                       onClick={() => handleDelete(period._id)}
                       className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100"
