@@ -36,15 +36,26 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
   const [activities, setActivities] = useState(initialActivities)
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState('')
   
   const [newActivity, setNewActivity] = useState({
     name: '',
     weeklyHours: 0,
-    type: 'INVESTIGACIÓN' as any
+    type: 'INVESTIGACIÓN' as any,
+    multiplierFactor: 1.0
   })
 
   const handleAdd = async () => {
-    if (!newActivity.name || newActivity.weeklyHours <= 0) return;
+    // Validation: name is always required; weeklyHours required for non-DOCENCIA types
+    if (!newActivity.name.trim()) {
+      setValidationError('El nombre de la actividad es obligatorio.');
+      return;
+    }
+    if (newActivity.type !== 'DOCENCIA' && newActivity.weeklyHours <= 0) {
+      setValidationError('Las horas semanales deben ser mayores a 0.');
+      return;
+    }
+    setValidationError('');
     setLoading(true)
     
     if (editingId) {
@@ -59,7 +70,7 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
       const res = await createAcademicActivity(newActivity)
       if (res.success) {
         setActivities([...activities, res.data])
-        setNewActivity({ name: '', weeklyHours: 0, type: 'INVESTIGACIÓN' })
+        setNewActivity({ name: '', weeklyHours: 0, type: 'INVESTIGACIÓN', multiplierFactor: 1.0 })
       } else {
         alert("Error: " + res.error)
       }
@@ -72,14 +83,16 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
     setNewActivity({
       name: activity.name,
       weeklyHours: activity.weeklyHours,
-      type: activity.type
+      type: activity.type,
+      multiplierFactor: activity.multiplierFactor ?? 1.0
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    setNewActivity({ name: '', weeklyHours: 0, type: 'INVESTIGACIÓN' })
+    setValidationError('')
+    setNewActivity({ name: '', weeklyHours: 0, type: 'INVESTIGACIÓN', multiplierFactor: 1.0 })
   }
 
   const handleDelete = async (id: string) => {
@@ -137,7 +150,14 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
                           return (
                              <button
                               key={key}
-                              onClick={() => setNewActivity({...newActivity, type: key as any})}
+                              onClick={() => {
+                                 const defaultFactor = key === 'DOCENCIA' ? 1.5 : 1.0;
+                                 setNewActivity({
+                                   ...newActivity, 
+                                   type: key as any,
+                                   multiplierFactor: defaultFactor
+                                 })
+                               }}
                               className={cn(
                                 "p-4 rounded-2xl border transition-all flex flex-col items-center gap-2",
                                 newActivity.type === key ? "border-primary bg-primary/5 text-primary" : "border-slate-100 bg-slate-50 text-slate-400"
@@ -172,6 +192,30 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
                     />
                  </div>
 
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Factor Multiplicador</label>
+                    <input 
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit font-black"
+                      placeholder="1.0"
+                      value={newActivity.multiplierFactor}
+                      onChange={(e) => setNewActivity({...newActivity, multiplierFactor: parseFloat(e.target.value) || 1.0})}
+                    />
+                 </div>
+
+                 {validationError && (
+                    <div className="flex items-center gap-2 text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-5 py-3 text-[11px] font-bold">
+                      <span className="h-4 w-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] font-black flex-shrink-0">!</span>
+                      {validationError}
+                    </div>
+                 )}
+                 {newActivity.type === 'DOCENCIA' && (
+                    <p className="text-[10px] text-slate-400 font-bold px-1">
+                      💡 Para Docencia, las horas semanales pueden ser 0 (el docente las define en su plan).
+                    </p>
+                 )}
                  <div className="pt-4">
                     <Button 
                       onClick={handleAdd}
@@ -207,7 +251,9 @@ export default function AcademicPortalClient({ initialActivities, user }: Props)
                           <div key={item._id} className="flex items-center justify-between p-6 rounded-3xl bg-slate-50/50 border border-slate-50 group hover:shadow-lg hover:shadow-slate-100 transition-all">
                              <div>
                                 <h4 className="font-serif text-slate-800 text-lg leading-tight">{item.name}</h4>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{item.weeklyHours} hrs semanales</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                  {item.weeklyHours} hrs semanales • Factor: {item.multiplierFactor ?? 1.0}
+                                </p>
                              </div>
                              <div className="flex items-center gap-2">
                                <button 

@@ -40,6 +40,15 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
   console.log("🔍 REVIEW CLIENT - INICIAL PLANS:", initialPlans);
 
   const filteredPlans = plans.filter(p => {
+    // If Jefe (ADMINGESTION), restrict to teachers in their program
+    if (user.role === 'ADMINGESTION') {
+      const teacherProgramId = p.user?.profile?.program?._id || p.user?.profile?.program || p.programId;
+      const jefeProgramId = user.profile?.program?._id || user.profile?.program;
+      if (!teacherProgramId || !jefeProgramId || teacherProgramId.toString() !== jefeProgramId.toString()) {
+        return false;
+      }
+    }
+
     const fullName = p.user?.fullName?.toLowerCase() || ""
     const identification = p.user?.identification || ""
     
@@ -64,7 +73,7 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
         setPlans(plans.map(p => p._id === selectedPlan._id ? { ...p, status, evaluatorComment: reviewComment } : p))
         setSelectedPlan(null)
         setReviewComment('')
-        alert(`Plan de trabajo ${status === 'APPROVED' ? 'aprobado' : 'marcado para ajustes'} exitosamente.`)
+        alert(`Plan de trabajo ${status === 'APPROVED' ? 'aprobado' : status === 'ENDORSED' ? 'avalado' : 'marcado para ajustes'} exitosamente.`)
     } else {
         alert("Error: " + res.error)
     }
@@ -78,7 +87,7 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
   }
 
   const calculateTotalWeekly = (plan: any) => {
-    return (plan.activities || []).reduce((acc: number, a: any) => acc + (a.weeklyHours || 0), 0)
+    return (plan.activities || []).reduce((acc: number, a: any) => acc + ((a.weeklyHours || 0) * (a.multiplierFactor ?? 1.0)), 0)
   }
 
   return (
@@ -118,10 +127,11 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
              >
-                <option value="ALL">TODOS LOS ESTADOS</option>
-                <option value="SUBMITTED">RADICADOS</option>
-                <option value="APPROVED">APROBADOS</option>
-                <option value="REJECTED">RECHAZADOS</option>
+                 <option value="ALL">TODOS LOS ESTADOS</option>
+                 <option value="SUBMITTED">RADICADOS</option>
+                 <option value="ENDORSED">AVALADOS</option>
+                 <option value="APPROVED">APROBADOS</option>
+                 <option value="REJECTED">RECHAZADOS</option>
              </select>
            </div>
         </div>
@@ -180,11 +190,13 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
                         plan.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                         plan.status === 'REJECTED' ? "bg-rose-50 text-rose-600 border-rose-100" :
                         plan.status === 'SUBMITTED' ? "bg-sky-50 text-sky-600 border-sky-100" :
+                        plan.status === 'ENDORSED' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
                         "bg-slate-50 text-slate-400 border-slate-200"
                     )}>
                         {plan.status === 'SUBMITTED' ? 'Pendiente' : 
                          plan.status === 'APPROVED' ? 'Aprobado' : 
-                         plan.status === 'REJECTED' ? 'Revisión' : 'Borrador'}
+                         plan.status === 'REJECTED' ? 'Revisión' : 
+                         plan.status === 'ENDORSED' ? 'Avalado' : 'Borrador'}
                     </div>
                   </td>
                   <td className="py-7 px-10 text-right">
@@ -232,6 +244,7 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
                          <div className="flex items-center gap-2 mt-1">
                             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest ">
                                Plan {selectedPlan.semester} • {selectedPlan.personalInfo?.typeOfBinding}
+                               {selectedPlan.exclusivity && selectedPlan.exclusivity !== 'NO' && ` • Exclusividad: ${selectedPlan.exclusivity}`}
                             </p>
                             <span className="w-1 h-1 rounded-full bg-slate-200" />
                             <p className="text-primary text-[10px] font-black uppercase tracking-widest">
@@ -268,10 +281,15 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
                                 <div>
                                    <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">{act.type}</p>
                                    <p className="text-sm font-bold text-slate-700">{act.name}</p>
+                                   <div className="flex items-center gap-2 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
+                                      <span>Base: {act.weeklyHours} hrs</span>
+                                      <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                      <span>Factor: {act.multiplierFactor ?? 1.0}</span>
+                                   </div>
                                 </div>
                              </div>
                              <div className="text-right">
-                                <p className="text-sm font-black text-slate-800">{act.weeklyHours} hrs/sem</p>
+                                <p className="text-sm font-black text-slate-800">{(act.weeklyHours * (act.multiplierFactor ?? 1.0))} hrs/sem</p>
                                 <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{act.semesterHours} totales</p>
                              </div>
                           </div>
@@ -293,24 +311,44 @@ export default function ReviewWorkPlansClient({ initialPlans, user }: Props) {
                            value={reviewComment}
                            onChange={(e) => setReviewComment(e.target.value)}
                          />
-
                          <div className="grid grid-cols-2 gap-6 pt-4">
-                            <Button 
-                              onClick={() => handleUpdateStatus('REJECTED')}
-                              disabled={loading}
-                              variant="ghost"
-                              className="h-16 rounded-2xl text-rose-400 hover:bg-rose-500 hover:text-white transition-all font-bold uppercase tracking-widest text-[11px] border border-white/5"
-                            >
-                               <XCircle className="mr-2 h-4 w-4" /> {loading ? "..." : "Recomendar Ajustes"}
-                            </Button>
-                            <Button 
-                              onClick={() => handleUpdateStatus('APPROVED')}
-                              disabled={loading}
-                              className="h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-emerald-900/50"
-                            >
-                               <CheckCircle2 className="mr-2 h-4 w-4" /> {loading ? "..." : "Aprobar Plan"}
-                            </Button>
-                         </div>
+                            {(selectedPlan.status === 'SUBMITTED' || selectedPlan.status === 'ENDORSED') ? (
+                              <>
+                                <Button 
+                                  onClick={() => handleUpdateStatus('REJECTED')}
+                                  disabled={loading}
+                                  variant="ghost"
+                                  className="h-16 rounded-2xl text-rose-400 hover:bg-rose-500 hover:text-white transition-all font-bold uppercase tracking-widest text-[11px] border border-white/5"
+                                >
+                                   <XCircle className="mr-2 h-4 w-4" /> {loading ? "..." : "Recomendar Ajustes"}
+                                </Button>
+                                
+                                {user.role === 'ADMINGESTION' ? (
+                                  <Button 
+                                    onClick={() => handleUpdateStatus('ENDORSED')}
+                                    disabled={loading || selectedPlan.status === 'ENDORSED'}
+                                    className="h-16 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-indigo-900/50 disabled:opacity-50"
+                                  >
+                                     <CheckCircle2 className="mr-2 h-4 w-4" /> {loading ? "..." : selectedPlan.status === 'ENDORSED' ? "Avalado" : "Dar Aval"}
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    onClick={() => handleUpdateStatus('APPROVED')}
+                                    disabled={loading}
+                                    className="h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-emerald-900/50"
+                                  >
+                                     <CheckCircle2 className="mr-2 h-4 w-4" /> {loading ? "..." : "Aprobar Plan"}
+                                  </Button>
+                                )}
+                              </>
+                            ) : (
+                              <div className="col-span-2 text-center py-4 text-xs font-bold uppercase tracking-widest text-slate-400 bg-white/5 border border-white/10 rounded-2xl font-outfit">
+                                {selectedPlan.status === 'APPROVED' && "Este plan ya ha sido aprobado por la Vicerrectoría."}
+                                {selectedPlan.status === 'REJECTED' && "Este plan requiere ajustes por parte del docente."}
+                                {selectedPlan.status === 'DRAFT' && "Este plan se encuentra en estado de borrador."}
+                              </div>
+                            )}
+                          </div>
                       </div>
                    </div>
                 </div>

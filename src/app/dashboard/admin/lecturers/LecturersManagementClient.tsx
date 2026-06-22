@@ -21,9 +21,11 @@ import { createLecturer, updateLecturer, deleteLecturer } from "@/lib/actions/le
 interface Props {
   initialLecturers: any[]
   user: any
+  faculties: any[]
+  programs: any[]
 }
 
-export default function LecturersManagementClient({ initialLecturers, user }: Props) {
+export default function LecturersManagementClient({ initialLecturers, user, faculties, programs }: Props) {
   const [lecturers, setLecturers] = useState(initialLecturers)
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -34,8 +36,15 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
   const [contractType, setContractType] = useState('PLANTA')
   const [email, setEmail] = useState('')
   
+  const [selectedFacultyId, setSelectedFacultyId] = useState('')
+  const [selectedProgramId, setSelectedProgramId] = useState('')
+  
   // Edit mode states
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const filteredPrograms = useMemo(() => {
+    return programs.filter(p => p.faculty === selectedFacultyId || (p.faculty as any)?._id === selectedFacultyId)
+  }, [selectedFacultyId, programs])
 
   const handleAdd = async () => {
     if (!fullName || !identification) {
@@ -48,10 +57,20 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
         fullName, 
         identification, 
         contractType, 
-        email: email || undefined 
+        email: email || undefined,
+        facultyId: selectedFacultyId,
+        programId: selectedProgramId
       })
       if (res.success) {
-        setLecturers(lecturers.map(l => l._id === editingId ? res.data : l))
+        // Map data from response (ensure populated values exist)
+        const updatedDoc = res.data;
+        const matchingFaculty = faculties.find(f => f._id === selectedFacultyId);
+        const matchingProgram = programs.find(p => p._id === selectedProgramId);
+        if (updatedDoc.profile) {
+          updatedDoc.profile.faculty = matchingFaculty || selectedFacultyId;
+          updatedDoc.profile.program = matchingProgram || selectedProgramId;
+        }
+        setLecturers(lecturers.map(l => l._id === editingId ? updatedDoc : l))
         handleCancelEdit()
       } else {
         alert("Error: " + res.error)
@@ -61,10 +80,19 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
         fullName, 
         identification, 
         contractType, 
-        email: email || undefined 
+        email: email || undefined,
+        facultyId: selectedFacultyId,
+        programId: selectedProgramId
       })
       if (res.success) {
-        setLecturers([res.data, ...lecturers])
+        const newDoc = res.data;
+        const matchingFaculty = faculties.find(f => f._id === selectedFacultyId);
+        const matchingProgram = programs.find(p => p._id === selectedProgramId);
+        if (newDoc.profile) {
+          newDoc.profile.faculty = matchingFaculty || selectedFacultyId;
+          newDoc.profile.program = matchingProgram || selectedProgramId;
+        }
+        setLecturers([newDoc, ...lecturers])
         handleCancelEdit()
       } else {
         alert("Error: " + res.error)
@@ -78,6 +106,8 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
     setFullName(lecturer.fullName)
     setIdentification(lecturer.identification)
     setContractType(lecturer.profile?.contractType || 'PLANTA')
+    setSelectedFacultyId(lecturer.profile?.faculty?._id || lecturer.profile?.faculty || '')
+    setSelectedProgramId(lecturer.profile?.program?._id || lecturer.profile?.program || '')
     setEmail(lecturer.email || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -87,6 +117,8 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
     setFullName('')
     setIdentification('')
     setContractType('PLANTA')
+    setSelectedFacultyId('')
+    setSelectedProgramId('')
     setEmail('')
   }
 
@@ -195,6 +227,33 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
                  </div>
 
                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Facultad de Aval</label>
+                    <select 
+                      value={selectedFacultyId} 
+                      onChange={(e) => {
+                        setSelectedFacultyId(e.target.value)
+                        setSelectedProgramId('')
+                      }}
+                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit cursor-pointer appearance-none text-xs"
+                    >
+                       <option value="">Seleccione Facultad...</option>
+                       {faculties.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Programa Académico</label>
+                    <select 
+                      value={selectedProgramId} 
+                      onChange={(e) => setSelectedProgramId(e.target.value)}
+                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-outfit cursor-pointer appearance-none text-xs"
+                    >
+                       <option value="">Seleccione Programa...</option>
+                       {filteredPrograms.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Vinculación</label>
                     <select 
                       value={contractType} 
@@ -257,15 +316,20 @@ export default function LecturersManagementClient({ initialLecturers, user }: Pr
                           {lecturer.fullName.charAt(0)}
                        </div>
                        <div>
-                          <div className="flex items-center gap-3 flex-wrap">
-                             <h3 className="text-xl font-serif text-slate-800">{lecturer.fullName}</h3>
-                             <span className={cn(
-                               "px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border",
-                               getContractBadgeStyles(lecturer.profile?.contractType)
-                             )}>
-                                {getContractLabel(lecturer.profile?.contractType)}
-                             </span>
-                          </div>
+                           <div className="flex items-center gap-3 flex-wrap">
+                              <h3 className="text-xl font-serif text-slate-800">{lecturer.fullName}</h3>
+                              <span className={cn(
+                                "px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border",
+                                getContractBadgeStyles(lecturer.profile?.contractType)
+                              )}>
+                                 {getContractLabel(lecturer.profile?.contractType)}
+                              </span>
+                              {lecturer.profile?.program?.name && (
+                                <span className="px-2.5 py-1 bg-sky-50 text-sky-600 border border-sky-100 rounded-lg text-[8px] font-bold uppercase tracking-wider">
+                                   {lecturer.profile?.program?.name}
+                                </span>
+                              )}
+                           </div>
                           <div className="flex items-center gap-4 mt-2 flex-wrap">
                              <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5">
                                 ID: <strong className="text-slate-600 font-bold">{lecturer.identification}</strong>

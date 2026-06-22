@@ -16,10 +16,14 @@ export interface IWorkPlan extends Document {
     type: 'DOCENCIA' | 'INVESTIGACIÓN' | 'EXTENSIÓN' | 'INSTITUCIONAL';
     name: string;
     weeklyHours: number;
+    multiplierFactor: number;
     semesterHours: number;
     description?: string;
+    evidenceText?: string;
+    evidenceFiles?: string[];
   }[];
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: 'DRAFT' | 'SUBMITTED' | 'ENDORSED' | 'APPROVED' | 'REJECTED';
+  exclusivity?: 'NO' | 'DOCENCIA' | 'INVESTIGACION' | 'EXTENSION' | 'COMISION';
   evaluatorComment?: string;
   evaluatedBy?: mongoose.Types.ObjectId;
   evaluatedAt?: Date;
@@ -49,14 +53,22 @@ const WorkPlanSchema: Schema = new Schema(
         },
         name: { type: String, required: true },
         weeklyHours: { type: Number, required: true },
+        multiplierFactor: { type: Number, default: 1.0 },
         semesterHours: { type: Number, required: true },
         description: { type: String },
+        evidenceText: { type: String, default: '' },
+        evidenceFiles: [{ type: String }],
       }
     ],
     status: { 
       type: String, 
-      enum: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'], 
+      enum: ['DRAFT', 'SUBMITTED', 'ENDORSED', 'APPROVED', 'REJECTED'], 
       default: 'DRAFT' 
+    },
+    exclusivity: {
+      type: String,
+      enum: ['NO', 'DOCENCIA', 'INVESTIGACION', 'EXTENSION', 'COMISION'],
+      default: 'NO'
     },
     evaluatorComment: { type: String },
     evaluatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -67,5 +79,9 @@ const WorkPlanSchema: Schema = new Schema(
 
 // Standardize semester sorting by adding index
 WorkPlanSchema.index({ user: 1, semester: 1 });
+
+if (process.env.NODE_ENV === 'development') {
+  delete mongoose.models.WorkPlan;
+}
 
 export default mongoose.models.WorkPlan || mongoose.model<IWorkPlan>('WorkPlan', WorkPlanSchema);

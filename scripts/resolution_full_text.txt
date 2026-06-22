@@ -1,0 +1,43 @@
+<USER_REQUEST>
+esto es lo que estamos parametrizando para los docentes, mira que hay un aval que luego a cada plan de trabajo tendra que aprobar el jefe inmediato. Mira que necesitamos ajustar para dar cunolimiento a esto: CAPITULO I. GENERALIDADES
+ 
+ARTÍCULO 1º.      OBJETO. La presente resolución tiene por objeto establecer los lineamientos para la planeación, concertación, aprobación, registro, seguimiento y evaluación del Plan de Trabajo Docente (PlanD), entendido como el instrumento mediante el cual se distribuye la jornada laboral de los docentes de planta de la Universidad de Sucre en actividades de docencia, investigación, extensión/proyección social y actividades institucionales complementarias.
+ 
+ARTÍCULO 2º.      ÁMBITO DE APLICACIÓN. La presente resolución aplica a los docentes de planta de tiempo completo, docentes de planta de medio tiempo de la Universidad de Sucre. Los docentes catedráticos se regirán por la reglamentación específica que les sea aplicable, sin perjuicio de los criterios académicos de programación de cursos, horarios y necesidades de los programas.
+ 
+ARTÍCULO 3º.      DEFINICIÓN DE PLAN DE TRABAJO DOCENTE. El Plan de Trabajo Docente (PlanD) es el instrumento académico-administrativo, individual y semestral, en el cual se registran las actividades asignadas a cada docente, las horas correspondientes, los productos o evidencias esperadas, el lugar físico o virtual de desarrollo de las actividades, los responsables de seguimiento y las fechas de verificación.
+ 
+PARÁGRAFO 1.   El PlanD no constituye autorización de teletrabajo ni modifica la naturaleza de la vinculación del docente. La posibilidad de desarrollar actividades presenciales, remotas, virtuales o híbridas dependerá de la naturaleza de la actividad, la modalidad del programa, la planeación académica y las directrices institucionales.
+ 
+PARÁGRAFO 2.   El PlanD será el referente principal para la evaluación del cumplimiento de la jornada laboral y para los procesos de
+<truncated 37428 bytes>
+evidencias, dificultades y ajustes realizados. El informe será revisado por la unidad académica y constituirá insumo para evaluación docente, planeación del semestre siguiente, procesos de calidad y decisiones institucionales.
+ 
+ARTÍCULO 26º. MODIFICACIÓN DEL PlanD. El PlanD aprobado podrá modificarse por razones académicas, administrativas o de fuerza mayor debidamente justificadas, tales como cambios en matrícula, apertura o cierre de grupos, novedades de vinculación, incapacidad, comisión, ajuste de calendario, necesidades de práctica, cambios de modalidad o decisiones de autoridad competente. Toda modificación deberá registrarse en el sistema o formato institucional, con justificación, fecha, responsable y aprobación de la instancia correspondiente.
+ 
+CAPÍTULO IX. OTRAS CONSIDERACIONES 
+ 
+PARÁGRAFO. Los formatos deberán permitir la identificación del Plan de Trabajo Colectivo, el PlanD individual, el cálculo de horas, los soportes de aprobación, las modificaciones, las evidencias de seguimiento y el informe final de cumplimiento. Los formatos deberán mostrar de manera diferenciada las horas base, el tipo de actividad, el factor multiplicador aplicado, las horas resultantes y la evidencia exigida, de forma que el docente y el jefe de departamento o coordinador puedan verificar el cálculo antes de la aprobación del PlanD.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-19T15:52:57-05:00.
+
+The user's current state is as follows:
+Active Document: /Users/javiersierra/Software/sigai/src/app/dashboard/admin/academic-periods/AcademicPeriodsClient.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- /Users/javiersierra/Software/sigai/src/app/dashboard/admin/academic-periods/AcademicPeriodsClient.tsx (LANGUAGE_TSX)
+- /Users/javiersierra/Software/sigai/src/lib/models/AcademicPeriod.ts (LANGUAGE_TYPESCRIPT)
+Running terminal commands:
+- npm run dev (in /Users/javiersierra/Software/sigai, running for 47m36s)
+</ADDITIONAL_METADATA>

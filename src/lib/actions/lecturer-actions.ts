@@ -4,18 +4,30 @@ import connectDB from "@/lib/mongoose";
 import User from "@/lib/models/User";
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 
 export async function getLecturers() {
   try {
     await connectDB();
-    const lecturers = await User.find({ role: 'DOCENTE' }).sort({ fullName: 1 }).lean();
+    const lecturers = await User.find({ role: 'DOCENTE' })
+      .populate('profile.faculty')
+      .populate('profile.program')
+      .sort({ fullName: 1 })
+      .lean();
     return { success: true, data: JSON.parse(JSON.stringify(lecturers)) };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function createLecturer(data: { fullName: string, identification: string, contractType: string, email?: string }) {
+export async function createLecturer(data: { 
+  fullName: string, 
+  identification: string, 
+  contractType: string, 
+  email?: string,
+  facultyId?: string,
+  programId?: string
+}) {
   try {
     await connectDB();
     
@@ -43,7 +55,9 @@ export async function createLecturer(data: { fullName: string, identification: s
       password: hashedPassword,
       role: 'DOCENTE',
       profile: {
-        contractType: data.contractType
+        contractType: data.contractType,
+        faculty: data.facultyId && data.facultyId.trim() ? new mongoose.Types.ObjectId(data.facultyId) : undefined,
+        program: data.programId && data.programId.trim() ? new mongoose.Types.ObjectId(data.programId) : undefined
       }
     });
 
@@ -55,7 +69,14 @@ export async function createLecturer(data: { fullName: string, identification: s
   }
 }
 
-export async function updateLecturer(id: string, data: { fullName: string, identification: string, contractType: string, email?: string }) {
+export async function updateLecturer(id: string, data: { 
+  fullName: string, 
+  identification: string, 
+  contractType: string, 
+  email?: string,
+  facultyId?: string,
+  programId?: string
+}) {
   try {
     await connectDB();
 
@@ -95,11 +116,17 @@ export async function updateLecturer(id: string, data: { fullName: string, ident
       updatedUser.password = updatePayload.password;
     }
 
-    // Make sure we update contractType in profile
+    // Make sure we update contractType, faculty, and program in profile
     if (!updatedUser.profile) {
-      updatedUser.profile = { contractType: data.contractType };
+      updatedUser.profile = { 
+        contractType: data.contractType,
+        faculty: data.facultyId && data.facultyId.trim() ? new mongoose.Types.ObjectId(data.facultyId) : undefined,
+        program: data.programId && data.programId.trim() ? new mongoose.Types.ObjectId(data.programId) : undefined
+      };
     } else {
       updatedUser.profile.contractType = data.contractType;
+      updatedUser.profile.faculty = data.facultyId && data.facultyId.trim() ? new mongoose.Types.ObjectId(data.facultyId) : undefined;
+      updatedUser.profile.program = data.programId && data.programId.trim() ? new mongoose.Types.ObjectId(data.programId) : undefined;
     }
     // Mark modified for subdocument
     updatedUser.markModified('profile');

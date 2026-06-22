@@ -87,6 +87,12 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
   
   const [groupSearch, setGroupSearch] = useState('')
 
+  const disableAcademicFields = useMemo(() => {
+    const isDocente = user.role === 'DOCENTE';
+    const hasAcademicInfo = !!(user.profile?.faculty || user.profile?.program);
+    return isDocente && hasAcademicInfo;
+  }, [user]);
+
   // SYNC STATE WITH PROPS (Only on changes that are NOT coming from our local edits)
   useEffect(() => {
     if (user && isInitialMount.current) {
@@ -415,60 +421,62 @@ export default function ProfileEditClient({ user, faculties, allPrograms, resear
                 </div>
               )}
 
-              {/* SECTION: ACADEMIC */}
-              {activeSection === 'ACADEMIC' && (
-                <div className="space-y-12">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Facultad de Aval</label>
-                        <select 
-                          value={facultyId}
-                          onChange={(e) => {
-                            setFacultyId(e.target.value)
-                            setProgramId('') // Reset program when faculty changes
-                          }}
-                          className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-slate-700 appearance-none cursor-pointer text-xs"
-                        >
-                           <option value="">Seleccione Facultad...</option>
-                           {faculties.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
-                        </select>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Programa Académico</label>
-                        <select 
-                          value={programId}
-                          onChange={(e) => setProgramId(e.target.value)}
-                          className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-slate-700 appearance-none cursor-pointer text-xs"
-                        >
-                           <option value="">Seleccione Programa...</option>
-                           {filteredPrograms.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                        </select>
-                      </div>
-
-                      <div className="md:col-span-1 grid grid-cols-2 gap-4">
-                         <div className="space-y-3">
-                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Mes Vinculación</label>
-                           <select value={joiningMonth} onChange={(e) => setJoiningMonth(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none text-[11px] font-medium">
-                              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-                           </select>
-                         </div>
-                         <div className="space-y-3">
-                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Año Vinculación</label>
-                           <input type="number" value={joiningYear} onChange={(e) => setJoiningYear(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-xs" />
-                         </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Tipo de Contrato</label>
-                        <select value={contractType} onChange={(e) => setContractType(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-[11px]">
-                           <option value="PLANTA">Docente de Planta</option>
-                           <option value="CONTRATO">Docente de Contrato</option>
-                           <option value="OCASIONAL">Docente Ocasional</option>
-                        </select>
-                      </div>
-                   </div>
-                </div>
+               {/* SECTION: ACADEMIC */}
+               {activeSection === 'ACADEMIC' && (
+                 <div className="space-y-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Facultad de Aval</label>
+                         <select 
+                           value={facultyId}
+                           disabled={disableAcademicFields}
+                           onChange={(e) => {
+                             setFacultyId(e.target.value)
+                             setProgramId('') // Reset program when faculty changes
+                           }}
+                           className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-slate-700 appearance-none cursor-pointer text-xs disabled:opacity-75 disabled:cursor-not-allowed"
+                         >
+                            <option value="">Seleccione Facultad...</option>
+                            {faculties.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
+                         </select>
+                       </div>
+ 
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Programa Académico</label>
+                         <select 
+                           value={programId}
+                           disabled={disableAcademicFields}
+                           onChange={(e) => setProgramId(e.target.value)}
+                           className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-slate-700 appearance-none cursor-pointer text-xs disabled:opacity-75 disabled:cursor-not-allowed"
+                         >
+                            <option value="">Seleccione Programa...</option>
+                            {filteredPrograms.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                         </select>
+                       </div>
+ 
+                       <div className="md:col-span-1 grid grid-cols-2 gap-4">
+                          <div className="space-y-3">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Mes Vinculación</label>
+                            <select value={joiningMonth} disabled={disableAcademicFields} onChange={(e) => setJoiningMonth(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none text-[11px] font-medium disabled:opacity-75 disabled:cursor-not-allowed">
+                               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Año Vinculación</label>
+                            <input type="number" value={joiningYear} disabled={disableAcademicFields} onChange={(e) => setJoiningYear(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-xs disabled:opacity-75 disabled:cursor-not-allowed" />
+                          </div>
+                       </div>
+ 
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Tipo de Contrato</label>
+                         <select value={contractType} disabled={disableAcademicFields} onChange={(e) => setContractType(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none font-medium text-[11px] disabled:opacity-75 disabled:cursor-not-allowed">
+                            <option value="PLANTA">Docente de Planta</option>
+                            <option value="CONTRATO">Docente de Contrato</option>
+                            <option value="OCASIONAL">Docente Ocasional</option>
+                         </select>
+                       </div>
+                    </div>
+                 </div>
               )}
 
               {/* SECTION: IMPACT */}

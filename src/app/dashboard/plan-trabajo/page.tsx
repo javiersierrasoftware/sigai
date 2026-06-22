@@ -14,7 +14,11 @@ export default async function WorkPlanPage() {
   if (!session) redirect('/login');
 
   await connectDB();
-  const user = session.user;
+  const dbUser = await User.findById(session.user.id || session.user._id).lean();
+  const user = dbUser ? {
+    ...session.user,
+    profile: dbUser.profile
+  } : session.user;
   const faculties = await Faculty.find().sort({ name: 1 }).lean();
   const programs = await AcademicProgram.find().sort({ name: 1 }).lean();
   

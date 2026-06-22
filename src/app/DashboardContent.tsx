@@ -862,8 +862,8 @@ export default function DashboardContent({ user }: DashboardContentProps) {
               <div className="absolute -right-12 -top-12 h-48 w-48 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 transition-transform duration-1000" />
             </div>
 
-            {/* CIARP ADMIN ONLY: Committee Management */}
-            {(user.role === 'ADMINCIARP' || user.role === 'vicerrectoria') && (
+            {/* CIARP ADMIN ONLY / ADMINGESTION: Committee Management & Workplan Review */}
+            {(user.role === 'ADMINCIARP' || user.role === 'vicerrectoria' || user.role === 'ADMINGESTION') && (
               <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl shadow-slate-200/50 relative overflow-hidden group">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-6">
@@ -874,38 +874,44 @@ export default function DashboardContent({ user }: DashboardContentProps) {
                   </div>
 
                   <div className="space-y-3">
-                    <Link href="/dashboard/ciarp-admin">
-                      <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn">
-                        <div className="flex items-center gap-3">
-                          <Users className="h-4 w-4 text-emerald-400" />
-                          Portal CIARP
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
-                      </button>
-                    </Link>
+                    {(user.role === 'ADMINCIARP' || user.role === 'vicerrectoria') && (
+                      <Link href="/dashboard/ciarp-admin">
+                        <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
+                          <div className="flex items-center gap-3">
+                            <Users className="h-4 w-4 text-emerald-400" />
+                            Portal CIARP
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                        </button>
+                      </Link>
+                    )}
+
+                    {user.role === 'vicerrectoria' && (
+                      <Link href="/dashboard/admin/academic-portal">
+                        <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
+                          <div className="flex items-center gap-3">
+                            <GradIcon className="h-4 w-4 text-sky-400" />
+                            Crear actividades docentes
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                        </button>
+                      </Link>
+                    )}
+
+                    {(user.role === 'vicerrectoria' || user.role === 'ADMINGESTION') && (
+                      <Link href="/dashboard/admin/review-workplans">
+                        <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
+                          <div className="flex items-center gap-3">
+                            <FileCheck className="h-4 w-4 text-emerald-400" />
+                            Revisión Planes de Trabajo
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
+                        </button>
+                      </Link>
+                    )}
 
                     {user.role === 'vicerrectoria' && (
                       <>
-                        <Link href="/dashboard/admin/academic-portal">
-                          <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
-                            <div className="flex items-center gap-3">
-                              <GradIcon className="h-4 w-4 text-sky-400" />
-                              Crear actividades docentes
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
-                          </button>
-                        </Link>
-
-                        <Link href="/dashboard/admin/review-workplans">
-                          <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
-                            <div className="flex items-center gap-3">
-                              <FileCheck className="h-4 w-4 text-emerald-400" />
-                              Revisión Planes de Trabajo
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-white/20 group-hover/btn:translate-x-1 transition-all" />
-                          </button>
-                        </Link>
-
                         <Link href="/dashboard/admin/academic-periods">
                           <button className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 transition-all rounded-2xl p-4 text-[11px] font-bold uppercase tracking-widest border border-white/5 group/btn mb-3">
                             <div className="flex items-center gap-3">
